@@ -44,7 +44,7 @@ def analyze_function_calls(result_dirs, project=None):
 def plot_horizontal_cumulative_bar_chart(data, path):
     labels = list(data.keys())
     
-    values = np.array([data[label] for label in labels]) / 26
+    values = np.array([data[label] for label in labels]) / data[labels[0]][0]
     cumulative_values = np.cumsum(values, axis=0)
     y = np.arange(len(data[labels[0]]))
 
