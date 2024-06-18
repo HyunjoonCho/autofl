@@ -48,13 +48,24 @@ def plot_horizontal_cumulative_bar_chart(data, path):
     cumulative_values = np.cumsum(values, axis=0)
     y = np.arange(len(data[labels[0]]))
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    MAX_STEPS=11
+    plt.style.use('style/style-formal.mplstyle')
+    func_indices = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
+          'get_code_snippet': 2, 'get_comments': 3} # for defects4j
+    colors=['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
+    func_labels = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
+    
+    _, ax = plt.subplots(figsize=(5, 2))
     
     for i in range(len(labels)):
+        try:
+            label_index = func_indices[labels[i]]
+        except:
+            label_index = 4
         if i == 0:
-            ax.barh(y, values[i], label=labels[i])
+            ax.barh(y, values[i], label=func_labels[label_index], color=f'#{colors[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
         else:
-            ax.barh(y, values[i], left=cumulative_values[i-1], label=labels[i])
+            ax.barh(y, values[i], left=cumulative_values[i-1], label=func_labels[label_index], color=f'#{colors[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
     
     ax.set_ylabel('Steps')
     ax.set_xlabel('Proportion')
@@ -62,8 +73,7 @@ def plot_horizontal_cumulative_bar_chart(data, path):
     ax.legend()
     
     ax.set_ylim(len(data[labels[0]]) - 0.5, -0.5)
-    
-    plt.savefig(path)
+    plt.savefig(path, bbox_inches='tight')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
