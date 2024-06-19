@@ -33,7 +33,7 @@ def analyze_function_calls(result_dirs, project=None):
             
             index = 0
             for m in valid_messages:
-                if m['role'] == 'assistant' and 'function_call' in m:
+                if m['role'] == 'assistant' and 'function_call' in m and index < 11:
                     if not m['function_call']['name'] in function_calls:
                         function_calls[m['function_call']['name']] = [0] * 11
                     function_calls[m['function_call']['name']][index] += 1
