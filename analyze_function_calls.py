@@ -67,8 +67,7 @@ def plot_horizontal_cumulative_bar_chart(data, path):
         else:
             ax.barh(y, values[i], left=cumulative_values[i-1], label=func_labels[label_index], color=f'#{colors[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
     
-    ax.set_ylabel('Steps')
-    ax.set_xlabel('Proportion')
+    ax.set_xlabel('Proportion of Runs')
     ax.set_title('Function Call Distribution at Each Step')
     ax.legend()
     
