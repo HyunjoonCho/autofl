@@ -20,7 +20,12 @@ for rep in $(seq 1 "$REPETITION"); do
     label="${LABEL_PREFIX}${rep}"
     save_dir="results/${label}/${MODEL}"
     mkdir -p "${save_dir}"
-    for bugname in $(ls -d ${DATA_DIR}/*/ | xargs -n1 basename | grep ${PROJECT}); do
+    if [ -z "$PROJECT" ]; then
+        bug_list=$(ls -d ${DATA_DIR}/*/ | xargs -n1 basename)
+    else
+        bug_list=$(ls -d ${DATA_DIR}/*/ | xargs -n1 basename | grep ${PROJECT})
+    fi
+    for bugname in $bug_list; do
         save_file="${save_dir}/XFL-${bugname}.json"
         if [ -f ${save_file} ]; then
             echo "${save_file} exists"
