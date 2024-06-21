@@ -42,18 +42,31 @@ def analyze_function_calls(result_dirs, project=None):
     return function_calls
 
 def plot_horizontal_cumulative_bar_chart(data, path):
-    labels = list(data.keys())
-    
-    values = np.array([data[label] for label in labels]) / data[labels[0]][0]
-    cumulative_values = np.cumsum(values, axis=0)
-    y = np.arange(len(data[labels[0]]))
-
     MAX_STEPS=11
     plt.style.use('style/style-formal.mplstyle')
     func_indices = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
           'get_code_snippet': 2, 'get_comments': 3} # for defects4j
     colors=['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
     func_labels = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
+
+    labels = list(data.keys())
+    total_runs = data[labels[0]][0]
+   
+    undefined_functions = [l for l in labels if l not in func_indices]
+    labels = sorted([l for l in labels if l in func_indices], key=lambda label: func_indices[label])
+    values = [data[label] for label in labels]
+
+    if undefined_functions:
+        undefined_calls = [0] * MAX_STEPS
+        for func in undefined_functions:
+            to_add = data[func]
+            undefined_calls = [undefined_calls[i] + to_add[i] for i in range(MAX_STEPS)]
+        values.append(undefined_calls)
+        labels.append('undefined_functions')
+
+    values = np.array(values) / total_runs
+    cumulative_values = np.cumsum(values, axis=0)
+    y = np.arange(len(data[labels[0]]))
     
     _, ax = plt.subplots(figsize=(5, 2))
     
