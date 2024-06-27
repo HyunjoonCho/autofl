@@ -14,9 +14,12 @@ def file2bug(json_file):
         return None
 
 def analyze_function_calls(result_dirs, project=None):
-    function_calls = {}
+    calls_by_step = {}
+    total_calls = {}
+    failing_calls = {}
+
     for result_dir in result_dirs:
-        file_iterator = sorted(os.listdir(result_dir), key=lambda fname: int(fname.split('_')[1].split('.')[0]))
+        file_iterator = sorted([f for f in os.listdir(result_dir) if f.endswith('.json')], key=lambda fname: int(fname.split('_')[1].split('.')[0]))
         print(f"Processing {result_dir}...")
         for fname in file_iterator:
             bug_name = file2bug(fname)
@@ -34,12 +37,25 @@ def analyze_function_calls(result_dirs, project=None):
             index = 0
             for m in valid_messages:
                 if m['role'] == 'assistant' and 'function_call' in m and index < 11:
-                    if not m['function_call']['name'] in function_calls:
-                        function_calls[m['function_call']['name']] = [0] * 11
-                    function_calls[m['function_call']['name']][index] += 1
+                    if not m['function_call']['name'] in calls_by_step:
+                        calls_by_step[m['function_call']['name']] = [0] * 11
+                    calls_by_step[m['function_call']['name']][index] += 1
                     index += 1
-            
-    return function_calls
+
+            for i in range(len(valid_messages) - 1):
+                m = valid_messages[i]
+                next_m = valid_messages[i + 1]
+                if m['role'] == 'assistant' and 'function_call' in m:
+                    if next_m['role'] != 'function':
+                        continue 
+                    if not m['function_call']['name'] in total_calls:
+                        total_calls[m['function_call']['name']] = 0
+                        failing_calls[m['function_call']['name']] = 0
+                    if 'error_message' in next_m['content']:
+                        failing_calls[m['function_call']['name']] += 1
+                    total_calls[m['function_call']['name']] += 1
+    
+    return calls_by_step, total_calls, failing_calls
 
 def plot_horizontal_cumulative_bar_chart(data, path):
     MAX_STEPS=11
@@ -87,6 +103,31 @@ def plot_horizontal_cumulative_bar_chart(data, path):
     ax.set_ylim(len(data[labels[0]]) - 0.5, -0.5)
     plt.savefig(path, bbox_inches='tight')
 
+def plot_function_calls(total_calls, failing_calls, path):
+    func_indices = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
+          'get_code_snippet': 2, 'get_comments': 3} # for defects4j
+    colors=['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
+    func_labels = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
+
+    functions = [f for f in list(total_calls.keys()) if f in func_indices]
+    total_values = [total_calls[func] for func in functions]
+    failing_values = [failing_calls[func] for func in functions]
+
+    translated_colors = [f'#{colors[func_indices[f]]}' for f in functions]
+    translated_labels = [func_labels[func_indices[f]] for f in functions]
+
+    x = np.arange(len(functions))
+
+    plt.figure(figsize=(6, 8))
+    plt.bar(x, total_values, width=0.8, label='Total Calls', color=translated_colors, alpha=0.5)
+    plt.bar(x, failing_values, width=0.8, label='Failing Calls', color=translated_colors, alpha=1.0)
+
+    plt.ylabel('Number of Calls', fontsize=14)
+    plt.title('Total Calls vs Failing Calls per Function', fontsize=16)
+    plt.xticks(x, translated_labels)
+
+    plt.savefig(path, bbox_inches='tight')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('result_dirs', nargs="+", type=str)
@@ -94,8 +135,9 @@ if __name__ == '__main__':
     parser.add_argument('--project', '-p', type=str, default=None)
     args = parser.parse_args()
 
-    data = analyze_function_calls(args.result_dirs, args.project)
-    plot_horizontal_cumulative_bar_chart(data, f'{args.output}.png')
+    calls_by_step, total, failing = analyze_function_calls(args.result_dirs, args.project)
+    plot_horizontal_cumulative_bar_chart(calls_by_step, f'{args.output}_distribution.png')
+    plot_function_calls(total, failing, f'{args.output}_failing_rate.png')
 
     with open(f'{args.output}.json', "w") as f:
-        json.dump(data, f, indent=4)
+        json.dump({'total': total, 'failing': failing, 'steps': calls_by_step}, f, indent=4)
