@@ -4,6 +4,11 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 
+# for defects4j
+FUNCTION_INDICES = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
+        'get_code_snippet': 2, 'get_comments': 3}
+FUNCTION_COLORS = ['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
+FUNCTION_LABELS = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
 
 def file2bug(json_file):
     if not json_file.endswith(".json"):
@@ -57,19 +62,14 @@ def analyze_function_calls(result_dirs, project=None):
     
     return calls_by_step, total_calls, failing_calls
 
-def plot_horizontal_cumulative_bar_chart(data, path):
+def plot_call_distribution(data, total_runs, path):
     MAX_STEPS=11
     plt.style.use('style/style-formal.mplstyle')
-    func_indices = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
-          'get_code_snippet': 2, 'get_comments': 3} # for defects4j
-    colors=['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
-    func_labels = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
 
     labels = list(data.keys())
-    total_runs = data[labels[0]][0]
    
-    undefined_functions = [l for l in labels if l not in func_indices]
-    labels = sorted([l for l in labels if l in func_indices], key=lambda label: func_indices[label])
+    undefined_functions = [l for l in labels if l not in FUNCTION_INDICES]
+    labels = sorted([l for l in labels if l in FUNCTION_INDICES], key=lambda label: FUNCTION_INDICES[label])
     values = [data[label] for label in labels]
 
     if undefined_functions:
@@ -88,13 +88,13 @@ def plot_horizontal_cumulative_bar_chart(data, path):
     
     for i in range(len(labels)):
         try:
-            label_index = func_indices[labels[i]]
+            label_index = FUNCTION_INDICES[labels[i]]
         except:
             label_index = 4
         if i == 0:
-            ax.barh(y, values[i], label=func_labels[label_index], color=f'#{colors[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
+            ax.barh(y, values[i], label=FUNCTION_LABELS[label_index], color=f'#{FUNCTION_COLORS[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
         else:
-            ax.barh(y, values[i], left=cumulative_values[i-1], label=func_labels[label_index], color=f'#{colors[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
+            ax.barh(y, values[i], left=cumulative_values[i-1], label=FUNCTION_LABELS[label_index], color=f'#{FUNCTION_COLORS[label_index]}', tick_label=[f'Step {i}' for i in range(MAX_STEPS)])
     
     ax.set_xlabel('Proportion of Runs')
     ax.set_title('Function Call Distribution at Each Step')
@@ -103,18 +103,13 @@ def plot_horizontal_cumulative_bar_chart(data, path):
     ax.set_ylim(len(data[labels[0]]) - 0.5, -0.5)
     plt.savefig(path, bbox_inches='tight')
 
-def plot_function_calls(total_calls, failing_calls, path):
-    func_indices = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_covered_methods_for_class': 1,
-          'get_code_snippet': 2, 'get_comments': 3} # for defects4j
-    colors=['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
-    func_labels = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
+def plot_failing_calls(total_calls, failing_calls, total_runs, path):
+    functions = sorted([f for f in list(total_calls.keys()) if f in FUNCTION_INDICES], key=lambda func: FUNCTION_INDICES[func])
+    total_values = [total_calls[func] / total_runs for func in functions]
+    failing_values = [failing_calls[func] / total_runs for func in functions]
 
-    functions = [f for f in list(total_calls.keys()) if f in func_indices]
-    total_values = [total_calls[func] for func in functions]
-    failing_values = [failing_calls[func] for func in functions]
-
-    translated_colors = [f'#{colors[func_indices[f]]}' for f in functions]
-    translated_labels = [func_labels[func_indices[f]] for f in functions]
+    translated_colors = [f'#{FUNCTION_COLORS[FUNCTION_INDICES[f]]}' for f in functions]
+    translated_labels = [FUNCTION_LABELS[FUNCTION_INDICES[f]] for f in functions]
 
     x = np.arange(len(functions))
 
@@ -136,8 +131,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     calls_by_step, total, failing = analyze_function_calls(args.result_dirs, args.project)
-    plot_horizontal_cumulative_bar_chart(calls_by_step, f'{args.output}_distribution.png')
-    plot_function_calls(total, failing, f'{args.output}_failing_rate.png')
+    total_runs = calls_by_step[list(calls_by_step.keys())[0]][0]
+    plot_call_distribution(calls_by_step, total_runs, f'{args.output}_distribution.png')
+    plot_failing_calls(total, failing, total_runs, f'{args.output}_failing_rate.png')
 
     with open(f'{args.output}.json', "w") as f:
         json.dump({'total': total, 'failing': failing, 'steps': calls_by_step}, f, indent=4)
