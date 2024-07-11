@@ -108,18 +108,18 @@ def plot_failing_calls(total_calls, failing_calls, total_runs, path):
     total_values = [total_calls[func] / total_runs for func in functions]
     failing_values = [failing_calls[func] / total_runs for func in functions]
 
-    translated_colors = [f'#{FUNCTION_COLORS[FUNCTION_INDICES[f]]}' for f in functions]
     translated_labels = [FUNCTION_LABELS[FUNCTION_INDICES[f]] for f in functions]
 
     x = np.arange(len(functions))
 
     plt.figure(figsize=(6, 8))
-    plt.bar(x, total_values, width=0.8, label='Total Calls', color=translated_colors, alpha=0.5)
-    plt.bar(x, failing_values, width=0.8, label='Failing Calls', color=translated_colors, alpha=1.0)
+    plt.bar(x, total_values, width=0.8, label='Valid Calls', color='limegreen', alpha=1.0)
+    plt.bar(x, failing_values, width=0.8, label='Invalid Calls', color='salmon', alpha=1.0)
 
     plt.ylabel('Number of Calls', fontsize=14)
-    plt.title('Total Calls vs Failing Calls per Function', fontsize=16)
+    # plt.title('Total Calls vs Invalid Calls per Function', fontsize=16)
     plt.xticks(x, translated_labels)
+    # plt.legend(prop={'size': 16})
 
     plt.savefig(path, bbox_inches='tight')
 
