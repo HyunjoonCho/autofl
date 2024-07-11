@@ -23,8 +23,8 @@ class OllamaEngine(ABC):
     def parse_response(self, response):
         if 'Function call:' in response:
             response = [line for line in response.splitlines() if 'Function call:' in line][0]
-            print(f'Asking result for {response}')
-            true_response = response.replace('Function call:', '').strip()
+            true_response = response.split('Function call:')[1].strip()
+            print(f'Asking result for {true_response}')
             func_name = true_response.split('(')[0]
                 
             arg_value = true_response.split('(')[1].removesuffix(')')
