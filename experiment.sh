@@ -23,6 +23,8 @@ python compute_score.py results/d4j_autofl_three_functions_*/mixtral -l java -a 
 python compute_score.py results/d4j_autofl_four_functions_*/mixtral -l java -a -v -o combined_fl_results/d4j_mixtral_four_funcs.json
 python compute_score.py results/d4j_autofl_four_functions_*/gemma2 -l java -a -v -o combined_fl_results/d4j_gemma2_four_funcs.json
 python compute_score.py results/d4j_autofl_three_functions_*/gemma2 -l java -a -v -o combined_fl_results/d4j_gemma2_three_funcs.json
+python compute_score.py results/d4j_autofl2_template2_*/gemma2 -l java -a -v -o combined_fl_results/d4j_gemma2_template2_exp2.json
+python compute_score.py results/d4j_autofl_template2_*/phi3:medium-128k -l java -a -v -o combined_fl_results/d4j_phi3_128k_template2.json
 
 python compute_score.py results/d4j_autofl_three_functions_*/llama3:70b -l java -a -v -o combined_fl_results/d4j_llama3_70B_three_funcs_chart.json -p Chart
 python compute_score.py results/d4j_autofl_four_functions_*/llama3:70b -l java -a -v -o combined_fl_results/d4j_llama3_70B_four_funcs_chart.json -p Chart
@@ -31,6 +33,13 @@ python compute_score.py results/d4j_chart_three_funcs_1/gemma2:27b -l java -a -v
 python compute_score.py results/d4j_chart_four_funcs_1/gemma2:27b -l java -a -v -o combined_fl_results/chart_gemma2_27B_four_funcs.json
 python compute_score.py results/d4j_chart_three_funcs_1/gemma2 -l java -a -v -o combined_fl_results/chart_gemma2_three_funcs.json
 python compute_score.py results/d4j_chart_four_funcs_1/gemma2 -l java -a -v -o combined_fl_results/chart_gemma2_four_funcs.json
+
+python compute_score.py results/d4j_autofl_template2_1/codellama:70b results/d4j_autofl_template2_1/llama3 results/d4j_autofl_template2_1/llama3:70b results/d4j_autofl_template2_1/gemma2 results/d4j_autofl_template2_1/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble5_template2.json # llama3 8B, gemma2 9B, codellama 70B, mixtral 8x7B, llama3 70B
+python compute_score.py results/d4j_autofl_template2_1/llama3 results/d4j_autofl_template2_1/llama3:70b results/d4j_autofl_template2_1/gemma2 results/d4j_autofl_template2_1/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble4_template2.json # llama3 8B, gemma2 9B, mixtral 8x7B, llama3 70B
+python compute_score.py results/d4j_autofl_template2_1/llama3:70b results/d4j_autofl_template2_1/gemma2 results/d4j_autofl_template2_1/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble3_1_template2.json # gemma2 9B, mixtral 8x7B, llama3 70B
+python compute_score.py results/d4j_autofl_template2_1/llama3 results/d4j_autofl_template2_1/gemma2 results/d4j_autofl_template2_1/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble3_2_template2.json # llama3 8B, gemma2 9B, mixtral 8x7B
+python compute_score.py results/d4j_autofl_template2_*/llama3 results/d4j_autofl_template2_*/llama3:70b results/d4j_autofl_template2_*/gemma2 results/d4j_autofl_template2_*/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble4_R5.json 
+python compute_score.py results/d4j_autofl_template2_*/llama3:70b results/d4j_autofl_template2_*/gemma2 results/d4j_autofl_template2_*/mixtral -l java -a -v -o combined_fl_results/d4j_ensemble3_R5.json 
 
 python compute_score.py results/d4j_llmtest_*/llama3 -l java -a -v -o combined_fl_results/d4j_llama3_baseline.json
 python compute_score.py results/d4j_llmtest_*/llama3:70b -l java -a -v -o combined_fl_results/d4j_llama3_70B_baseline.json
@@ -58,6 +67,8 @@ python analyze_function_calls.py results/d4j_autofl_*/gpt-3.5-turbo-0613 -o func
 python analyze_function_calls.py results/d4j_autofl_*/gpt-4-0613 -o function_call_patterns/d4j_gpt4
 python analyze_function_calls.py results/d4j_autofl_three_functions*/gemma2 -o function_call_patterns/d4j_gemma2_three_funcs
 python analyze_function_calls.py results/d4j_autofl_four_functions*/gemma2 -o function_call_patterns/d4j_gemma2_four_funcs
+python analyze_function_calls.py results/d4j_autofl2_template2_*/gemma2 -o function_call_patterns/d4j_gemma2_template2_exp2
+python analyze_function_calls.py results/d4j_autofl_template2_*/phi3:medium-128k -o function_call_patterns/d4j_phi3_128k_template2
 
 python analyze_function_calls.py results/d4j_chart_three_funcs_1/gemma2:27b -o function_call_patterns/chart_gemma2_27B_three_funcs
 python analyze_function_calls.py results/d4j_chart_three_funcs_1/gemma2:27b -o function_call_patterns/chart_gemma2_27B_three_funcs
