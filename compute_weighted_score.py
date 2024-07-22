@@ -113,7 +113,6 @@ def preprocess_results(result_dirs, project, aux, lang):
 
     return turn_dict_into_dataframe(method_scores, model_list), model_list
 
-
 def apply_weight_and_evaluate(autofl_scores, model_list, weights):
     print(f'Applying weights: {weights}')
     autofl_scores_aug = autofl_scores.copy(deep=True)
@@ -125,10 +124,10 @@ def apply_weight_and_evaluate(autofl_scores, model_list, weights):
     autofl_scores_aug['rank'] = autofl_scores_aug.groupby('bug')['sort_key'].rank().astype(int)
 
     rank_by_bug = autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
-    print(f'acc@1: {len(rank_by_bug[rank_by_bug == 1])} acc@2: {len(rank_by_bug[rank_by_bug <= 2])} acc@3: {len(rank_by_bug[rank_by_bug <= 3])}')
+    accuracies = [len(rank_by_bug[rank_by_bug == 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
+    print(f'acc@1, 2, 3: {accuracies}')
 
-    return autofl_scores_aug, len(rank_by_bug[rank_by_bug == 1])
-
+    return autofl_scores_aug, accuracies
 
 def grid_search(score_df, model_list):
     max_weight = len(model_list) # let's assume three models, for now
@@ -139,24 +138,36 @@ def grid_search(score_df, model_list):
     weights = []
     accuracies = []
     best_weight = []
-    best_acc1 = 0
+    best_accs = []
     for i in range(granularity + 1):
         for j in range(granularity + 1 - i):
-            k = granularity - i - j
-            _, acc1 = apply_weight_and_evaluate(score_df, model_list, [i * step, j * step, k * step])
-            if acc1 > best_acc1:
-                best_acc1 = acc1
-                best_weight = [i * step, j * step, k * step]
-            weights.append([i * step, j * step, k * step])
-            accuracies.append(acc1)
-    print(f'{best_weight} achieved acc@1 of {best_acc1}')
+            for k in range(granularity + 1 - i - j):
+                l = granularity - i - j - k
+                _, accs = apply_weight_and_evaluate(score_df, model_list, [i * step, j * step, k * step, l * step])
+                if accs > best_accs:
+                    best_accs = accs
+                    best_weight = [i * step, j * step, k * step, l * step]
+                weights.append([i * step, j * step, k * step, l * step])
+                accuracies.append(accs)
+    print(f'{best_weight} achieved accuracies of {best_accs}')
     return weights, accuracies
+
+from sklearn.linear_model import LinearRegression
+
+def linear_regression(score_df, model_list):
+    print(score_df)
+    X = score_df[model_list]
+    y = score_df['desired_score']
+    model = LinearRegression()
+    model.fit(X, y)
+    print(model.intercept_, model.coef_)
+    apply_weight_and_evaluate(score_df, model_list, list(model.coef_))
 
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial import Delaunay
 
-def visualize_space(weights, accuracies):
+def visualize_space(weights, accuracies): # only works for three models scenario
     weights = np.array(weights)
     accuracies = np.array(accuracies)
 
@@ -233,6 +244,6 @@ if __name__ == '__main__':
         score_df, model_list = preprocess_results(args.result_dirs, args.project, args.aux, args.language)    
         score_df.to_csv(PATH_TO_DATAFRAME)
 
-    # optimize_weights
+    linear_regression(score_df, model_list)
     w, a = grid_search(score_df, model_list)
     visualize_space(w, a)
