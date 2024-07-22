@@ -7,7 +7,7 @@ from lib.repo_interface import get_repo_interface
 
 from compute_score import *
 
-PATH_TO_DATAFRAME = 'tmp.csv'
+PATH_TO_DATAFRAME = 'ensemble3.csv'
 
 def compute_model_scores(result_dirs, project=None):
     json_status = {}
@@ -113,8 +113,9 @@ def preprocess_results(result_dirs, project, aux, lang):
 
     return turn_dict_into_dataframe(method_scores, model_list), model_list
 
-def apply_weight_and_evaluate(autofl_scores, model_list, weights):
-    print(f'Applying weights: {weights}')
+def apply_weight_and_evaluate(autofl_scores, model_list, weights, verbose=False):
+    if verbose:
+        print(f'Applying weights: {weights}')
     autofl_scores_aug = autofl_scores.copy(deep=True)
     autofl_scores_aug['weighted_sum'] = autofl_scores_aug[model_list].dot(weights)
 
@@ -125,7 +126,8 @@ def apply_weight_and_evaluate(autofl_scores, model_list, weights):
 
     rank_by_bug = autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
     accuracies = [len(rank_by_bug[rank_by_bug == 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
-    print(f'acc@1, 2, 3: {accuracies}')
+    if verbose:
+        print(f'acc@1, 2, 3: {accuracies}')
 
     return autofl_scores_aug, accuracies
 
@@ -227,6 +229,135 @@ def verify_acc_with_existing_pipe(weighted_scores_df):
         summary[f"acc@{n}"] = calculate_acc(buggy_method_ranks, key="autofl_rank", n=n)
     print(json.dumps(summary, indent=4))
 
+import random
+from deap import base, creator, tools
+
+def create_evaluation_function(score_df, model_list):
+    def evaluateVotingWeights(weight):
+        _, accs = apply_weight_and_evaluate(score_df, model_list, weight)
+        return accs
+    return evaluateVotingWeights
+
+def create_stats_and_logbook():
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats.register("avg", np.mean)
+    stats.register("std", np.std)
+    stats.register("min", np.min)
+    stats.register("max", np.max)
+
+    logbook = tools.Logbook()
+    logbook.header = ["gen", "evals"] + stats.fields
+
+    return stats, logbook
+
+def ga(score_df, model_list):
+    POPSIZE, NUMGEN, CXPB, MUTPB = 10, 10, 0.7, 0.8
+
+    creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
+    creator.create("Individual", list, fitness=creator.WeightedFitness) # or np.ndarray?
+
+    toolbox = base.Toolbox()
+    toolbox.register("SingleWeight", random.random)
+    toolbox.register("individual", tools.initRepeat, creator.Individual, toolbox.SingleWeight, len(model_list))
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+
+    toolbox.register("evaluate", create_evaluation_function(score_df, model_list))
+    toolbox.register("mate", tools.cxTwoPoint)
+    toolbox.register("mutate", tools.mutFlipBit, indpb=0.05)
+    toolbox.register("select", tools.selTournament, tournsize=3)
+
+    pop = toolbox.population(n=POPSIZE)
+    for ind in pop:
+        ind.fitness.values = toolbox.evaluate(ind)
+
+    stats, logbook = create_stats_and_logbook()
+
+    best = None
+
+    for g in range(NUMGEN):
+        offspring = toolbox.select(pop, len(pop))
+        offspring = list(map(toolbox.clone, offspring))
+
+        for child1, child2 in zip(offspring[::2], offspring[1::2]):
+            if random.random() < CXPB:
+                toolbox.mate(child1, child2)
+                del child1.fitness.values
+                del child2.fitness.values
+
+        for mutant in offspring:
+            if random.random() < MUTPB:
+                toolbox.mutate(mutant)
+                del mutant.fitness.values
+
+        invalid_ind = [ind for ind in offspring if not ind.fitness.valid]
+        fitnesses = map(toolbox.evaluate, invalid_ind)
+        for ind, fit in zip(invalid_ind, fitnesses):
+            ind.fitness.values = fit
+        
+        pop[:] = offspring
+        if not best or best.fitness.values < pop[0].fitness.values:
+            best = pop[0]
+                
+        logbook.record(gen=g, evals=len(pop), **stats.compile(pop))
+        print(logbook.stream)
+    
+    return best
+
+import operator
+import math
+
+def pso(score_df, model_list):
+    POPSIZE, NUMGEN = 10, 20
+
+    creator.create("WeightedFitness", base.Fitness, weights=(1, 0.1, 0.01))
+    creator.create("Particle", list, fitness=creator.WeightedFitness, speed=list, smin=None, smax=None, best=None)
+
+    def generate(size, pmin, pmax, smin, smax):
+        part = creator.Particle(random.uniform(pmin, pmax) for _ in range(size)) 
+        part.speed = [random.uniform(smin, smax) for _ in range(size)]
+        part.smin = smin
+        part.smax = smax
+        return part
+
+    def updateParticle(part, best, phi1, phi2):
+        u1 = (random.uniform(0, phi1) for _ in range(len(part)))
+        u2 = (random.uniform(0, phi2) for _ in range(len(part)))
+        v_u1 = map(operator.mul, u1, map(operator.sub, part.best, part))
+        v_u2 = map(operator.mul, u2, map(operator.sub, best, part))
+        part.speed = list(map(operator.add, part.speed, map(operator.add, v_u1, v_u2)))
+        for i, speed in enumerate(part.speed):
+            if abs(speed) < part.smin:
+                part.speed[i] = math.copysign(part.smin, speed)
+            elif abs(speed) > part.smax:
+                part.speed[i] = math.copysign(part.smax, speed)
+        part[:] = list(map(operator.add, part, part.speed))
+
+    toolbox = base.Toolbox()
+    toolbox.register("particle", generate, size=len(model_list), pmin=0, pmax=1, smin=-0.5, smax=0.5)
+    toolbox.register("population", tools.initRepeat, list, toolbox.particle)
+    toolbox.register("update", updateParticle, phi1=0.3, phi2=0.3)
+    toolbox.register("evaluate", create_evaluation_function(score_df, model_list))
+
+    pop = toolbox.population(n=POPSIZE)
+    stats, logbook = create_stats_and_logbook()
+    best = None
+
+    for g in range(NUMGEN):
+        for part in pop:
+            part.fitness.values = toolbox.evaluate(part)
+            if not part.best or part.best.fitness < part.fitness:
+                part.best = creator.Particle(part)
+                part.best.fitness.values = part.fitness.values
+            if not best or best.fitness < part.fitness:
+                best = creator.Particle(part)
+                best.fitness.values = part.fitness.values
+        for part in pop:
+            toolbox.update(part, best)
+
+        logbook.record(gen=g, evals=len(pop), **stats.compile(pop))
+        print(logbook.stream)
+    return best
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('result_dirs', nargs="+", type=str)
@@ -244,6 +375,6 @@ if __name__ == '__main__':
         score_df, model_list = preprocess_results(args.result_dirs, args.project, args.aux, args.language)    
         score_df.to_csv(PATH_TO_DATAFRAME)
 
-    linear_regression(score_df, model_list)
-    w, a = grid_search(score_df, model_list)
-    visualize_space(w, a)
+    best = ga(score_df, model_list)
+    # best = pso(score_df, model_list)
+    apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
