@@ -7,7 +7,7 @@ from lib.repo_interface import get_repo_interface
 
 from compute_score import *
 
-PATH_TO_DATAFRAME = 'ensemble3.csv'
+PATH_TO_DATAFRAME = 'ensemble4.csv'
 
 def compute_model_scores(result_dirs, project=None):
     json_status = {}
@@ -239,7 +239,7 @@ def create_evaluation_function(score_df, model_list):
     return evaluateVotingWeights
 
 def create_stats_and_logbook():
-    stats = tools.Statistics(lambda ind: ind.fitness.values)
+    stats = tools.Statistics(lambda ind: ind.fitness.values[0])
     stats.register("avg", np.mean)
     stats.register("std", np.std)
     stats.register("min", np.min)
@@ -251,7 +251,7 @@ def create_stats_and_logbook():
     return stats, logbook
 
 def ga(score_df, model_list):
-    POPSIZE, NUMGEN, CXPB, MUTPB = 10, 10, 0.7, 0.8
+    POPSIZE, NUMGEN, CXPB, MUTPB = 20, 20, 0.5, 0.3
 
     creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
     creator.create("Individual", list, fitness=creator.WeightedFitness) # or np.ndarray?
@@ -295,9 +295,7 @@ def ga(score_df, model_list):
             ind.fitness.values = fit
         
         pop[:] = offspring
-        if not best or best.fitness.values < pop[0].fitness.values:
-            best = pop[0]
-                
+        best = tools.selBest(pop, 1)[0] 
         logbook.record(gen=g, evals=len(pop), **stats.compile(pop))
         print(logbook.stream)
     
@@ -307,7 +305,7 @@ import operator
 import math
 
 def pso(score_df, model_list):
-    POPSIZE, NUMGEN = 10, 20
+    POPSIZE, NUMGEN = 10, 100
 
     creator.create("WeightedFitness", base.Fitness, weights=(1, 0.1, 0.01))
     creator.create("Particle", list, fitness=creator.WeightedFitness, speed=list, smin=None, smax=None, best=None)
@@ -335,7 +333,7 @@ def pso(score_df, model_list):
     toolbox = base.Toolbox()
     toolbox.register("particle", generate, size=len(model_list), pmin=0, pmax=1, smin=-0.5, smax=0.5)
     toolbox.register("population", tools.initRepeat, list, toolbox.particle)
-    toolbox.register("update", updateParticle, phi1=0.3, phi2=0.3)
+    toolbox.register("update", updateParticle, phi1=0.3, phi2=0.5)
     toolbox.register("evaluate", create_evaluation_function(score_df, model_list))
 
     pop = toolbox.population(n=POPSIZE)
@@ -358,6 +356,50 @@ def pso(score_df, model_list):
         print(logbook.stream)
     return best
 
+def de(score_df, model_list):
+    POPSIZE, NUMGEN, CXPB, DW = 20, 10, 0.9, 0.8
+
+    creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
+    creator.create("Agent", list, fitness=creator.WeightedFitness)
+
+    toolbox = base.Toolbox()
+    toolbox.register("SingleWeight", random.random)
+    toolbox.register("individual", tools.initRepeat, creator.Agent, toolbox.SingleWeight, len(model_list))
+    toolbox.register("population", tools.initRepeat, list, toolbox.individual)
+    toolbox.register("evaluate", create_evaluation_function(score_df, model_list))
+
+    def updateAgent(agent, pop, size):
+        original_agent = toolbox.clone(agent)
+        a, b, c = random.sample(pop, 3)
+        R = random.randint(1, size) - 1
+        for i in range(size):
+            if i == R or random.random() < CXPB:
+                agent[i] = a[i] + DW * (b[i] - c[i])
+        new_fitness = toolbox.evaluate(agent)
+        if list(agent.fitness.values) > new_fitness:
+            agent[:] = original_agent[:]
+        else:
+            agent.fitness.values = new_fitness
+
+    toolbox.register("update", updateAgent, size=len(model_list))
+
+    pop = toolbox.population(n=POPSIZE)
+    for ind in pop:
+        ind.fitness.values = toolbox.evaluate(ind)
+
+    stats, logbook = create_stats_and_logbook()
+    best = None
+
+    for g in range(NUMGEN):
+        for agent in pop:
+            toolbox.update(agent, pop)
+        pop = sorted(pop, key=lambda ind: ind.fitness.values, reverse=True)
+        best = tools.selBest(pop, 1)[0] 
+        logbook.record(gen=g, evals=len(pop), **stats.compile(pop))
+        print(logbook.stream)
+    
+    return best
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('result_dirs', nargs="+", type=str)
@@ -370,11 +412,12 @@ if __name__ == '__main__':
 
     if os.path.isfile(PATH_TO_DATAFRAME):
         score_df = pd.read_csv(PATH_TO_DATAFRAME)
-        model_list = ['llama3:70b', 'gemma2', 'mixtral']
+        model_list = ['llama3', 'llama3:70b', 'gemma2', 'mixtral']
     else:
         score_df, model_list = preprocess_results(args.result_dirs, args.project, args.aux, args.language)    
         score_df.to_csv(PATH_TO_DATAFRAME)
 
-    best = ga(score_df, model_list)
+    # best = ga(score_df, model_list)
     # best = pso(score_df, model_list)
+    best = de(score_df, model_list)
     apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
