@@ -115,47 +115,6 @@ def preprocess_results(result_dirs, project, aux, lang):
 
     return turn_dict_into_dataframe(method_scores, model_list), model_list
 
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import Delaunay
-
-def visualize_space(weights, accuracies): # only works for three models scenario
-    weights = np.array(weights)
-    accuracies = np.array(accuracies)
-
-    # Function to convert 3D weights to 2D points on an equilateral triangle
-    def to_2d_coords(weights):
-        x = 0.5 * (2 * weights[:, 1] + weights[:, 2]) / (weights[:, 0] + weights[:, 1] + weights[:, 2])
-        y = (np.sqrt(3) / 2) * weights[:, 2] / (weights[:, 0] + weights[:, 1] + weights[:, 2])
-        return x, y
-
-    # Convert the 3D weights to 2D coordinates
-    x, y = to_2d_coords(weights)
-
-    # Create the 3D plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
-
-    # Perform Delaunay triangulation to create a mesh grid over the triangular plane
-    points2D = np.vstack([x, y]).T
-    tri = Delaunay(points2D)
-
-    # Create a surface plot over the triangular plane
-    ax.plot_trisurf(x, y, accuracies, triangles=tri.simplices, cmap='viridis', alpha=0.8)
-
-    # Plot the data points
-    ax.scatter(x, y, accuracies, c=accuracies, cmap='viridis', edgecolor='k', marker='o')
-
-    # Label the axes
-    ax.set_xlabel('Weight X')
-    ax.set_ylabel('Weight Y')
-    ax.set_zlabel('Accuracy')
-    ax.set_zlim(100, 140)
-    ax.zaxis.set_major_locator(plt.MaxNLocator(5))  # Adjust the number of ticks as needed
-
-    ax.set_title('Weight Space vs Accuracy')
-    plt.savefig('grid.png')
-
 def reconstruct_dict_from_dataframe(score_df):
     data = {}
     for _, row in score_df.iterrows():

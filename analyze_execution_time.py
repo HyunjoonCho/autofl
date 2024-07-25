@@ -92,6 +92,8 @@ if __name__ == '__main__':
     data = analyze_execution_time(args.result_dirs, args.project)
     plot_boxes_for_each_category(data, f'{args.output}_per_category.png')
     plot_boxes_for_each_bug(data, f'{args.output}_per_bug.png')
+    data['total_time'] = sum([sum(v) for v in data.values()]) 
+    print(f'Total time: {data['total_time']}')
 
     with open(f'{args.output}.json', "w") as f:
         json.dump(data, f, indent=4)
