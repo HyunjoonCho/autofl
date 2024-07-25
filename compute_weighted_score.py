@@ -6,7 +6,7 @@ from tqdm import tqdm
 from lib.repo_interface import get_repo_interface
 
 from compute_score import *
-from optimization_strategies import get_best_weight_with, apply_weight_and_evaluate
+from optimization_strategies import *
 
 NUM_DATAFRAME_HEADER_COLS = 7
 PATH_TO_DATAFRAME = 'ensemble4.csv'
@@ -115,6 +115,32 @@ def preprocess_results(result_dirs, project, aux, lang):
 
     return turn_dict_into_dataframe(method_scores, model_list), model_list
 
+def apply_weight_and_evaluate(autofl_scores, model_list, weights, verbose=False):
+    normalizing_factor = len(model_list) / sum(weights)
+    weights = [w * normalizing_factor for w in weights]
+    if verbose:
+        print(f'Applying weights: {weights}')
+    autofl_scores_aug = autofl_scores.copy(deep=True)
+    autofl_scores_aug['weighted_sum'] = autofl_scores_aug[model_list].dot(weights)
+
+    def create_sort_key(row):
+        return (-row['weighted_sum'], [-row['aux1'], -row['aux2']], row['i'], row['method'])
+    autofl_scores_aug['sort_key'] = autofl_scores_aug.apply(create_sort_key, axis=1)
+    autofl_scores_aug['rank'] = autofl_scores_aug.groupby('bug')['sort_key'].rank().astype(int)
+
+    rank_by_bug = autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
+    accuracies = [len(rank_by_bug[rank_by_bug == 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
+    if verbose:
+        print(f'acc@1, 2, 3: {accuracies}')
+
+    return autofl_scores_aug, accuracies
+
+def create_evaluation_function(score_df, model_list):
+    def evaluateVotingWeights(weight):
+        _, accs = apply_weight_and_evaluate(score_df, model_list, weight)
+        return accs
+    return evaluateVotingWeights
+
 def reconstruct_dict_from_dataframe(score_df):
     data = {}
     for _, row in score_df.iterrows():
@@ -156,5 +182,17 @@ if __name__ == '__main__':
         score_df, model_list = preprocess_results(args.result_dirs, args.project, args.aux, args.language)    
         score_df.to_csv(PATH_TO_DATAFRAME)
 
-    best = get_best_weight_with(args.strategy, score_df, model_list)
+    evaluator = create_evaluation_function(score_df, model_list)
+
+    if args.strategy == "grid":
+        best = grid_search(evaluator, len(model_list))
+    elif args.strategy == "regression":
+        best = linear_regression(score_df[model_list], score_df['desired_score'])
+    elif args.strategy == "ga":
+        best = ga(evaluator, len(model_list))
+    elif args.strategy == "pso":
+        best = pso(evaluator, len(model_list))
+    else:
+        best = de(evaluator, len(model_list))
+
     apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
