@@ -34,7 +34,7 @@ for rep in $(seq 1 "$REPETITION"); do
         if [ -f "${DATA_DIR}/${bugname}/snippet.json" ]; then
             cmd="python autofl.py -m ${MODEL} -e ${ENDPOINT} -b ${bugname} -p ${PROMPT_FILE} -o ${save_file} --max_budget ${BUDGET} --max_num_tests ${NUM_TESTS} --show_line_number --postprocess_test_snippet --allow_multi_predictions --test_offset $((rep - 1))"
             echo ${cmd}
-            ${cmd}
+            timeout 10m ${cmd}
         fi
     done
 done
