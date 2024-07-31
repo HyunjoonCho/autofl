@@ -9,7 +9,6 @@ from compute_score import *
 from optimization_strategies import *
 
 NUM_DATAFRAME_HEADER_COLS = 7
-PATH_TO_DATAFRAME = 'ensemble4.csv'
 
 def compute_model_scores(result_dirs, project=None):
     json_status = {}
@@ -175,24 +174,32 @@ if __name__ == '__main__':
     args = parser.parse_args()
     assert args.language in ["java", "python"]
 
-    if os.path.isfile(PATH_TO_DATAFRAME):
-        score_df = pd.read_csv(PATH_TO_DATAFRAME)
+    path_to_dataframe = f'{args.output}.csv'
+    if os.path.isfile(path_to_dataframe):
+        score_df = pd.read_csv(path_to_dataframe)
         model_list = list(score_df.columns[NUM_DATAFRAME_HEADER_COLS:])
     else:
         score_df, model_list = preprocess_results(args.result_dirs, args.project, args.aux, args.language)    
-        score_df.to_csv(PATH_TO_DATAFRAME)
+        score_df.to_csv(path_to_dataframe)
 
     evaluator = create_evaluation_function(score_df, model_list)
+    size = len(model_list)
+    log = ''
 
     if args.strategy == "grid":
-        best = grid_search(evaluator, len(model_list))
+        best = grid_search(evaluator, size)
     elif args.strategy == "regression":
         best = linear_regression(score_df[model_list], score_df['desired_score'])
     elif args.strategy == "ga":
-        best = ga(evaluator, len(model_list))
+        best, log = ga(evaluator, size)
     elif args.strategy == "pso":
-        best = pso(evaluator, len(model_list))
+        best, log = pso(evaluator, size)
     else:
-        best = de(evaluator, len(model_list))
+        best, log = de(evaluator, size)
+    
+    if log:
+        with open(f'{args.output}_{args.strategy}.txt', 'w') as f:
+            f.write(log)
+            f.write(f'\nRaw Best Weight: {best}')
 
     apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
