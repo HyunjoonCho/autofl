@@ -242,6 +242,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action="store_true")
     args = parser.parse_args()
 
+    start = time.time()
     ad = AutoDebugger(args.endpoint, args.bug_name, args.model, args.prompt,
         test_offset=args.test_offset,
         max_num_tests=args.max_num_tests,
@@ -261,7 +262,7 @@ if __name__ == '__main__':
 
     with open(args.out, "w") as f:
         json.dump({
-            'time': time.time(),
+            'time_taken': time.time() - start,
             'messages': ad.messages,
             'interaction_records': {
                 "step_histories": ad._interaction_records,

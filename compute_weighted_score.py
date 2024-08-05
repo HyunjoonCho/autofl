@@ -3,6 +3,7 @@ import os
 import argparse
 import pandas as pd
 from tqdm import tqdm
+from time import time
 from sklearn.model_selection import KFold
 from lib.repo_interface import get_repo_interface
 
@@ -174,6 +175,7 @@ def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
     size = len(model_list)
     added_accs = []
     for i, (train_bug_indices, validation_bug_indices) in enumerate(fold_indices):
+        start = time()
         train_bugs = unique_bugs[train_bug_indices]
         validation_bugs = unique_bugs[validation_bug_indices]
         
@@ -188,7 +190,7 @@ def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
             added_accs = accs[:]
         else:
             added_accs = [added_accs[i] + accs[i] for i in range(len(added_accs))]
-        cv_log += f'\nFold {i + 1:2} - Raw Best Weight: {best}\tAccuracy: {accs} out of {len(validation_bug_indices)}\n' + log
+        cv_log += f'\nFold {i + 1:2} - Raw Best Weight: {best}\tAccuracy: {accs} out of {len(validation_bug_indices)}\tTime Taken: {time() - start}\n' + log
     cv_log += f'\n---Overall Accuracies: {added_accs}---'
     
     return cv_log
