@@ -3,6 +3,7 @@ import os
 import argparse
 import pandas as pd
 from tqdm import tqdm
+from sklearn.model_selection import KFold
 from lib.repo_interface import get_repo_interface
 
 from compute_score import *
@@ -163,6 +164,45 @@ def verify_acc_with_existing_pipe(weighted_scores_df):
         summary[f"acc@{n}"] = calculate_acc(buggy_method_ranks, key="autofl_rank", n=n)
     print(json.dumps(summary, indent=4))
 
+def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
+    cv_log = f'---Running {k}-fold CV---\n'
+
+    unique_bugs = score_df['bug'].unique()
+    kf = KFold(n_splits=k, shuffle=True, random_state=42)
+    fold_indices = list(kf.split(unique_bugs))
+    
+    size = len(model_list)
+    added_accs = []
+    for i, (train_bug_indices, validation_bug_indices) in enumerate(fold_indices):
+        train_bugs = unique_bugs[train_bug_indices]
+        validation_bugs = unique_bugs[validation_bug_indices]
+        
+        train_set = score_df[score_df['bug'].isin(train_bugs)]
+        validation_set = score_df[score_df['bug'].isin(validation_bugs)]
+        
+        evaluator = create_evaluation_function(train_set, model_list)
+        best, log = optimizer(evaluator, size)
+        _, accs = apply_weight_and_evaluate(validation_set, model_list, best, verbose=True)
+        
+        if not added_accs:
+            added_accs = accs[:]
+        else:
+            added_accs = [added_accs[i] + accs[i] for i in range(len(added_accs))]
+        cv_log += f'\nFold {i + 1:2} - Raw Best Weight: {best}\tAccuracy: {accs} out of {len(validation_bug_indices)}\n' + log
+    cv_log += f'\n---Overall Accuracies: {added_accs}---'
+    
+    return cv_log
+
+def get_correpsonding_optimizer(strategy):
+    if strategy == "grid":
+        return grid_search
+    elif strategy == "ga":
+        return ga
+    elif strategy == "pso":
+        return pso
+    else:
+        return de
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('result_dirs', nargs="+", type=str)
@@ -184,22 +224,8 @@ if __name__ == '__main__':
 
     evaluator = create_evaluation_function(score_df, model_list)
     size = len(model_list)
-    log = ''
-
-    if args.strategy == "grid":
-        best = grid_search(evaluator, size)
-    elif args.strategy == "regression":
-        best = linear_regression(score_df[model_list], score_df['desired_score'])
-    elif args.strategy == "ga":
-        best, log = ga(evaluator, size)
-    elif args.strategy == "pso":
-        best, log = pso(evaluator, size)
-    else:
-        best, log = de(evaluator, size)
+    optimizer = get_correpsonding_optimizer(args.strategy)
+    log = cross_validation(score_df, model_list, optimizer)
     
-    if log:
-        with open(f'{args.output}_{args.strategy}.txt', 'w') as f:
-            f.write(log)
-            f.write(f'\nRaw Best Weight: {best}')
-
-    apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
+    with open(f'{args.output}_{args.strategy}_CV.txt', 'w') as f:
+        f.write(log)

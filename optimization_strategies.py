@@ -23,12 +23,12 @@ def grid_search(evaluator, size):
                 best_weight = weight
 
     print(f'{best_weight} achieved accuracies of {best_accs}')
-    return best_weight
+    return best_weight, ''
 
 def linear_regression(X, y):
     model = LinearRegression()
     model.fit(X, y)
-    return list(model.coef_)
+    return list(model.coef_), ''
 
 def create_stats_and_logbook():
     stats = tools.Statistics(lambda ind: ind.fitness.values[0])
