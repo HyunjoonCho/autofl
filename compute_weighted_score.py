@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 from tqdm import tqdm
 from time import time
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from lib.repo_interface import get_repo_interface
 
 from compute_score import *
@@ -165,12 +165,17 @@ def verify_acc_with_existing_pipe(weighted_scores_df):
         summary[f"acc@{n}"] = calculate_acc(buggy_method_ranks, key="autofl_rank", n=n)
     print(json.dumps(summary, indent=4))
 
-def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
+def cross_validation(score_df, model_list, optimizer, k=10, stratified=True):
     cv_log = f'---Running {k}-fold CV---\n'
 
     unique_bugs = score_df['bug'].unique()
-    kf = KFold(n_splits=k, shuffle=True, random_state=42)
-    fold_indices = list(kf.split(unique_bugs))
+    if stratified:
+        projects = [bug_id.split('_')[0] for bug_id in unique_bugs]
+        skf = StratifiedKFold(n_splits=k, shuffle=True, random_state=42)
+        fold_indices = list(skf.split(unique_bugs, projects))
+    else: 
+        kf = KFold(n_splits=k, shuffle=True, random_state=42)
+        fold_indices = list(kf.split(unique_bugs))
     
     size = len(model_list)
     added_accs = []

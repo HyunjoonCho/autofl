@@ -95,7 +95,7 @@ def ga(evaluator, size):
     return best, log
 
 def pso(evaluator, size):
-    POPSIZE, NUMGEN = 10, 100
+    POPSIZE, NUMGEN = 10, 50
 
     creator.create("WeightedFitness", base.Fitness, weights=(1, 0.1, 0.01))
     creator.create("Particle", list, fitness=creator.WeightedFitness, speed=list, smin=None, smax=None, best=None)
@@ -149,7 +149,7 @@ def pso(evaluator, size):
     return best, log
 
 def de(evaluator, size):
-    POPSIZE, NUMGEN, CXPB, DW = 30, 30, 0.9, 0.8
+    POPSIZE, NUMGEN, CXPB, DW = 20, 25, 0.9, 0.8
 
     creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
     creator.create("Agent", list, fitness=creator.WeightedFitness)
