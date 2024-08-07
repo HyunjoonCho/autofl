@@ -217,6 +217,7 @@ if __name__ == '__main__':
     parser.add_argument('--project', '-p', type=str, default=None)
     parser.add_argument('--language', '-l', type=str, default="java")
     parser.add_argument('--strategy', '-s', type=str, default="de")
+    parser.add_argument('--cross_validation', '-cv', action="store_true")
     parser.add_argument('--aux', '-a', action="store_true")    
     args = parser.parse_args()
     assert args.language in ["java", "python"]
@@ -230,9 +231,16 @@ if __name__ == '__main__':
         score_df.to_csv(path_to_dataframe)
 
     evaluator = create_evaluation_function(score_df, model_list)
-    size = len(model_list)
     optimizer = get_correpsonding_optimizer(args.strategy)
-    log = cross_validation(score_df, model_list, optimizer)
+
+    if args.cross_validation:
+        log = cross_validation(score_df, model_list, optimizer)
+    else:
+        evaluator = create_evaluation_function(score_df, model_list)
+        best, log = optimizer(evaluator, len(model_list))
+        _, accs = apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
+        log += f'\nRaw Best Weight: {best}\tAccuracy: {accs}'
     
-    with open(f'{args.output}_{args.strategy}_CV.txt', 'w') as f:
+    output_path = f'{args.output}_{args.strategy}_CV.txt' if args.cross_validation else f'{args.output}_{args.strategy}.txt' 
+    with open(output_path, 'w') as f:
         f.write(log)
