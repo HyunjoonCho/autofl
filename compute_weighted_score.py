@@ -165,7 +165,7 @@ def verify_acc_with_existing_pipe(weighted_scores_df):
         summary[f"acc@{n}"] = calculate_acc(buggy_method_ranks, key="autofl_rank", n=n)
     print(json.dumps(summary, indent=4))
 
-def cross_validation(score_df, model_list, optimizer, k=10, stratified=True):
+def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
     cv_log = f'---Running {k}-fold CV---\n'
 
     unique_bugs = score_df['bug'].unique()
