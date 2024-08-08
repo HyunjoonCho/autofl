@@ -118,7 +118,7 @@ def pso(evaluator, size):
                 part.speed[i] = math.copysign(part.smin, speed)
             elif abs(speed) > part.smax:
                 part.speed[i] = math.copysign(part.smax, speed)
-        part[:] = [v if v >= 0 else -v for v in list(map(operator.add, part, part.speed))]
+        part[:] = [max(v, 0.001) for v in list(map(operator.add, part, part.speed))]
 
     toolbox = base.Toolbox()
     toolbox.register("particle", generate, size=size, pmin=0, pmax=1, smin=-0.5, smax=0.5)
@@ -167,7 +167,7 @@ def de(evaluator, size):
         R = random.randint(0, size - 1)
         for i in range(size):
             if i == R or random.random() < CXPB:
-                agent[i] = reference_agent[i] if reference_agent[i] >= 0 else -reference_agent[i]
+                agent[i] = max(reference_agent[i], 0.001)
         new_fitness = toolbox.evaluate(agent)
         if list(agent.fitness.values) > new_fitness:
             agent[:] = original_agent[:]
