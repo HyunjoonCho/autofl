@@ -31,7 +31,7 @@ def linear_regression(X, y):
     return list(model.coef_), ''
 
 def create_stats_and_logbook():
-    stats = tools.Statistics(lambda ind: ind.fitness.values[0])
+    stats = tools.Statistics(lambda ind: ind.fitness.values)
     stats.register("avg", np.mean)
     stats.register("std", np.std)
     stats.register("min", np.min)
@@ -45,7 +45,7 @@ def create_stats_and_logbook():
 def ga(evaluator, size):
     POPSIZE, NUMGEN, CXPB, MUTPB = 20, 20, 0.5, 0.3
 
-    creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
+    creator.create("WeightedFitness", base.Fitness, weights=(-1.0,))
     creator.create("Individual", list, fitness=creator.WeightedFitness) # or np.ndarray?
 
     toolbox = base.Toolbox()
@@ -97,7 +97,7 @@ def ga(evaluator, size):
 def pso(evaluator, size):
     POPSIZE, NUMGEN = 10, 50
 
-    creator.create("WeightedFitness", base.Fitness, weights=(1, 0.1, 0.01))
+    creator.create("WeightedFitness", base.Fitness, weights=(-1.0,))
     creator.create("Particle", list, fitness=creator.WeightedFitness, speed=list, smin=None, smax=None, best=None)
 
     def generate(size, pmin, pmax, smin, smax):
@@ -151,7 +151,7 @@ def pso(evaluator, size):
 def de(evaluator, size):
     POPSIZE, NUMGEN, CXPB, DW = 20, 25, 0.9, 0.8
 
-    creator.create("WeightedFitness", base.Fitness, weights=(1.0, 0.1, 0.01))
+    creator.create("WeightedFitness", base.Fitness, weights=(-1.0,))
     creator.create("Agent", list, fitness=creator.WeightedFitness)
 
     toolbox = base.Toolbox()
@@ -169,7 +169,7 @@ def de(evaluator, size):
             if i == R or random.random() < CXPB:
                 agent[i] = max(reference_agent[i], 0.001)
         new_fitness = toolbox.evaluate(agent)
-        if list(agent.fitness.values) > new_fitness:
+        if tuple(agent.fitness.values) < new_fitness:
             agent[:] = original_agent[:]
         else:
             agent.fitness.values = new_fitness
@@ -186,8 +186,8 @@ def de(evaluator, size):
     for g in range(NUMGEN):
         for agent in pop:
             toolbox.update(agent, pop)
-        pop = sorted(pop, key=lambda ind: ind.fitness.values, reverse=True)
-        best = tools.selBest(pop, 1)[0] 
+        pop = sorted(pop, key=lambda ind: ind.fitness.values)
+        best = tools.selBest(pop, 1)[0]
         logbook.record(gen=g, evals=len(pop), **stats.compile(pop))
         print(logbook.stream)
 

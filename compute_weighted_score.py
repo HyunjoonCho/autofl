@@ -129,17 +129,17 @@ def apply_weight_and_evaluate(autofl_scores, model_list, weights, verbose=False)
     autofl_scores_aug['sort_key'] = autofl_scores_aug.apply(create_sort_key, axis=1)
     autofl_scores_aug['rank'] = autofl_scores_aug.groupby('bug')['sort_key'].rank().astype(int)
 
-    rank_by_bug = autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
-    accuracies = [len(rank_by_bug[rank_by_bug == 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
-    if verbose:
-        print(f'acc@1, 2, 3: {accuracies}')
+    return autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
 
-    return autofl_scores_aug, accuracies
+def get_accuracies(rank_by_bug):
+   return [len(rank_by_bug[rank_by_bug <= 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
+
+def get_wef(rank_by_bug):
+    return sum(rank_by_bug),
 
 def create_evaluation_function(score_df, model_list):
     def evaluateVotingWeights(weight):
-        _, accs = apply_weight_and_evaluate(score_df, model_list, weight)
-        return accs
+        return get_wef(apply_weight_and_evaluate(score_df, model_list, weight))
     return evaluateVotingWeights
 
 def reconstruct_dict_from_dataframe(score_df):
@@ -189,7 +189,7 @@ def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
         
         evaluator = create_evaluation_function(train_set, model_list)
         best, log = optimizer(evaluator, size)
-        _, accs = apply_weight_and_evaluate(validation_set, model_list, best, verbose=True)
+        accs = get_accuracies(apply_weight_and_evaluate(validation_set, model_list, best, verbose=True))
         
         if not added_accs:
             added_accs = accs[:]
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     else:
         evaluator = create_evaluation_function(score_df, model_list)
         best, log = optimizer(evaluator, len(model_list))
-        _, accs = apply_weight_and_evaluate(score_df, model_list, best, verbose=True)
+        accs = get_accuracies(apply_weight_and_evaluate(score_df, model_list, best, verbose=True))
         log += f'\nRaw Best Weight: {best}\tAccuracy: {accs}'
     
     output_path = f'{args.output}_{args.strategy}_CV.txt' if args.cross_validation else f'{args.output}_{args.strategy}.txt' 
