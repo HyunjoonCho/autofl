@@ -166,7 +166,8 @@ def verify_acc_with_existing_pipe(weighted_scores_df):
     print(json.dumps(summary, indent=4))
 
 def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
-    cv_log = f'---Running {k}-fold CV---\n'
+    cv_log = dict()
+    cv_log['num_folds'] = k
 
     unique_bugs = score_df['bug'].unique()
     if stratified:
@@ -181,6 +182,7 @@ def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
     added_accs = []
     for i, (train_bug_indices, validation_bug_indices) in enumerate(fold_indices):
         start = time()
+        current_fold = dict()
         train_bugs = unique_bugs[train_bug_indices]
         validation_bugs = unique_bugs[validation_bug_indices]
         
@@ -195,8 +197,15 @@ def cross_validation(score_df, model_list, optimizer, k=10, stratified=False):
             added_accs = accs[:]
         else:
             added_accs = [added_accs[i] + accs[i] for i in range(len(added_accs))]
-        cv_log += f'\nFold {i + 1:2} - Raw Best Weight: {best}\tAccuracy: {accs} out of {len(validation_bug_indices)}\tTime Taken: {time() - start}\n' + log
-    cv_log += f'\n---Overall Accuracies: {added_accs}---'
+        
+        current_fold['best'] = best
+        current_fold['accs'] = accs
+        current_fold['fold_size'] = len(validation_bug_indices)
+        current_fold['time_taken'] = time() - start 
+        current_fold['log'] = log
+        cv_log[f'fold_{i + 1:02}'] = current_fold
+        
+    cv_log['total_acc'] = added_accs
     
     return cv_log
 
@@ -239,8 +248,9 @@ if __name__ == '__main__':
         evaluator = create_evaluation_function(score_df, model_list)
         best, log = optimizer(evaluator, len(model_list))
         accs = get_accuracies(apply_weight_and_evaluate(score_df, model_list, best, verbose=True))
-        log += f'\nRaw Best Weight: {best}\tAccuracy: {accs}'
+        log['best'] = best
+        log['accs'] = accs
     
-    output_path = f'{args.output}_{args.strategy}_CV.txt' if args.cross_validation else f'{args.output}_{args.strategy}.txt' 
+    output_path = f'{args.output}_{args.strategy}_CV.json' if args.cross_validation else f'{args.output}_{args.strategy}.json' 
     with open(output_path, 'w') as f:
-        f.write(log)
+        json.dump(log, f, indent=4)

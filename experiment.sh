@@ -1,3 +1,15 @@
+python compute_weighted_score.py results/d4j_autofl_template2_*/llama3 \
+                                 results/d4j_autofl_template2_*/llama3:70b \
+                                 results/d4j_autofl_template2_*/gemma2 \
+                                 results/d4j_autofl_template2_*/mixtral \
+                                 -a -l java -s de -cv -o weighted_fl_results/d4j_ensemble4_R5
+
+python compute_weighted_score.py results/d4j_autofl_template2_*/llama3 \
+                                 results/d4j_autofl_template2_*/llama3:70b \
+                                 results/d4j_autofl_template2_*/gemma2 \
+                                 results/d4j_autofl_template2_*/mixtral \
+                                 -a -l java -s pso -cv -o weighted_fl_results/d4j_ensemble4_R5
+
 sh runner.sh d4j_chart_single_prompt_ 5 defects4j llama3 prompts/system_msg_expbug_with_funcs.txt Chart
 sh runner.sh d4j_chart_three_funcs_ 5 defects4j llama3 prompts/system_msg_expbug_with_three_funcs.txt Chart
 sh runner.sh d4j_chart_single_prompt_ 1 defects4j codellama:13B prompts/system_msg_expbug_with_funcs.txt Chart
@@ -44,6 +56,7 @@ python compute_score.py results/d4j_autofl_template2_*/mistral-nemo:12b-instruct
 python compute_score.py results/d4j_autofl_template2_*/mixtral:8x7b-instruct-v0.1-q6_K -l java -a -v -o combined_fl_results/d4j_mixtral_q6_K_template2_R5.json
 python compute_score.py results/d4j_autofl_template2_*/llama3.1:8b-instruct-fp16 -l java -a -v -o combined_fl_results/d4j_llama3.1_fp16_template2_R5.json
 python compute_score.py results/d4j_autofl2_template2_*/llama3.1 -l java -a -v -o combined_fl_results/d4j_llama3.1_v2_template2_R5.json
+python compute_score.py results/d4j_autofl2_template2_*/mistral-nemo -l java -a -v -o combined_fl_results/d4j_mistral_nemo_v2_template2.json
 
 python compute_score.py \
     results/d4j_autofl_stability_1/llama3 \
@@ -122,6 +135,8 @@ python compute_score.py results/d4j_llmtest_*/llama3 -l java -a -v -o combined_f
 python compute_score.py results/d4j_llmtest_*/llama3:70b -l java -a -v -o combined_fl_results/d4j_llama3_70B_baseline.json
 python compute_score.py results/d4j_llmtest_*/mixtral -l java -a -v -o combined_fl_results/d4j_mixtral_baseline.json
 python compute_score.py results/d4j_llmtest_*/gemma2 -l java -a -v -o combined_fl_results/d4j_gemma2_baseline.json
+
+python compute_score.py results/d4j_autofl_stability_*/llama3 -l java -a -v -o combined_fl_results/d4j_llama3_8B_template2_R50.json
 
 python analyze_function_calls.py results/d4j_chart_single_prompt_*/llama3 -o function_call_patterns/chart_llama3_single_prompt_multi_run
 python analyze_function_calls.py results/d4j_chart_three_funcs_*/llama3 -o function_call_patterns/chart_llama3_three_funcs
