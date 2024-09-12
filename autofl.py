@@ -6,6 +6,7 @@ import hashlib
 from copy import deepcopy
 from lib import name_utils, llm_utils
 from lib.repo_interface import get_repo_interface
+from lib.energy import EnergyMeter
 
 RESULT_DIR = './results/'
 
@@ -242,7 +243,6 @@ if __name__ == '__main__':
     parser.add_argument('--debug', action="store_true")
     args = parser.parse_args()
 
-    start = time.time()
     ad = AutoDebugger(args.endpoint, args.bug_name, args.model, args.prompt,
         test_offset=args.test_offset,
         max_num_tests=args.max_num_tests,
@@ -253,12 +253,19 @@ if __name__ == '__main__':
         debug=args.debug
     )
 
+    start = time.time()
+    meter = EnergyMeter()
+    meter.start_session()
+    
     try:
         grade = ad.run(args.max_budget)
     except Exception as e:
         grade = traceback.format_exc()
         if args.debug:
             raise e
+    finally:
+        total_energy, power_draw, gpu_activity = meter.finish_session()
+        meter.stop()
 
     with open(args.out, "w") as f:
         json.dump({
@@ -269,4 +276,7 @@ if __name__ == '__main__':
                 "mid_to_message": ad._message_map
             },
             'buggy_methods': grade,
+            'total_energy': total_energy,
+            'power_draw': power_draw,
+            'gpu_activity': gpu_activity,
         }, f, indent=4)
