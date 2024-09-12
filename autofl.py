@@ -276,7 +276,7 @@ if __name__ == '__main__':
                 "mid_to_message": ad._message_map
             },
             'buggy_methods': grade,
-            'total_energy': total_energy,
+            'total_energy': total_energy.tolist(),
             'power_draw': power_draw,
             'gpu_activity': gpu_activity,
         }, f, indent=4)
