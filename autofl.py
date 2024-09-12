@@ -264,7 +264,7 @@ if __name__ == '__main__':
         if args.debug:
             raise e
     finally:
-        total_energy, power_draw, gpu_activity = meter.finish_session()
+        total_energy, gpu_activity, power_draw = meter.finish_session()
         meter.stop()
 
     with open(args.out, "w") as f:
