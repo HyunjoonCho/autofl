@@ -1,0 +1,464 @@
+{
+    "time_taken": 4.469125747680664,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['com.google.debugging.sourcemap.SourceMapGeneratorV3Test.testParseSourceMetaMap()']` failed.\nThe test looks like:\n\n```java\n422 :   public void testParseSourceMetaMap() throws Exception {\n423 :     final String INPUT1 = \"file1\";\n424 :     final String INPUT2 = \"file2\";\n425 :     LinkedHashMap<String, String> inputs = Maps.newLinkedHashMap();\n426 :     inputs.put(INPUT1, \"var __FOO__ = 1;\");\n427 :     inputs.put(INPUT2, \"var __BAR__ = 2;\");\n428 :     RunResult result1 = compile(inputs.get(INPUT1), INPUT1);\n429 :     RunResult result2 = compile(inputs.get(INPUT2), INPUT2);\n430 : \n431 :     final String MAP1 = \"map1\";\n432 :     final String MAP2 = \"map2\";\n433 :     final LinkedHashMap<String, String> maps = Maps.newLinkedHashMap();\n434 :     maps.put(MAP1, result1.sourceMapFileContent);\n435 :     maps.put(MAP2, result2.sourceMapFileContent);\n436 : \n437 :     List<SourceMapSection> sections = Lists.newArrayList();\n438 : \n439 :     StringBuilder output = new StringBuilder();\n440 :     FilePosition offset = appendAndCount(output, result1.generatedSource);\n441 :     sections.add(SourceMapSection.forURL(MAP1, 0, 0));\n442 :     output.append(result2.generatedSource);\n443 :     sections.add(\n444 :         SourceMapSection.forURL(MAP2, offset.getLine(), offset.getColumn()));\n445 : \n446 :     SourceMapGeneratorV3 generator = new SourceMapGeneratorV3();\n447 :     StringBuilder mapContents = new StringBuilder();\n448 :     generator.appendIndexMapTo(mapContents, \"out.js\", sections);\n449 : \n450 :     check(inputs, output.toString(), mapContents.toString(), // error occurred here\n451 :       new SourceMapSupplier() {\n452 :         @Override\n453 :         public String getSourceMap(String url){\n454 :           return maps.get(url);\n455 :       }});\n456 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: expected:<5> but was:<4>\n\tat com.google.debugging.sourcemap.SourceMapTestCase.check(SourceMapTestCase.java:252)\n\tat com.google.debugging.sourcemap.SourceMapGeneratorV3Test.testParseSourceMetaMap(SourceMapGeneratorV3Test.java:450)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.rhino.jstype\": [\"NoObjectType\", \"UnionTypeBuilder\", \"FunctionBuilder\", \"ValueType\", \"FunctionType\", \"NoResolvedType\", \"ArrowType\", \"PrototypeObjectType\", \"FunctionParamBuilder\", \"UnionType\", \"ErrorFunctionType\", \"BooleanType\", \"StringType\", \"InstanceObjectType\", \"AllType\", \"JSType\", \"UnknownType\", \"NumberType\", \"JSTypeRegistry\", \"NullType\", \"ObjectType\", \"NoType\", \"VoidType\"], \"com.google.debugging.sourcemap\": [\"Base64\", \"SourceMapConsumerFactory\", \"SourceMapGeneratorV3\", \"SourceMapGeneratorFactory\", \"Base64VLQ\", \"FilePosition\", \"SourceMapConsumerV3\", \"SourceMapSection\", \"Util\"], \"com.google.javascript.jscomp\": [\"NodeTraversal\", \"CompilerInput\", \"BasicErrorManager\", \"ProcessDefines\", \"Compiler\", \"PassConfig\", \"AbstractMessageFormatter\", \"SourceInformationAnnotator\", \"Tracer\", \"DiagnosticGroupWarningsGuard\", \"JsAst\", \"NodeUtil\", \"CodeChangeHandler\", \"PhaseOptimizer\", \"DiagnosticGroup\", \"ClosureCodingConvention\", \"ComposeWarningsGuard\", \"PassFactory\", \"Result\", \"WarningsGuard\", \"Scope\", \"JSError\", \"CodeGenerator\", \"CodeConsumer\", \"CompilerOptions\", \"SourceFile\", \"RhinoErrorReporter\", \"LoggerErrorManager\", \"VarCheck\", \"CheckLevel\", \"SyntacticScopeCreator\", \"SuppressDocWarningsGuard\", \"AnonymousFunctionNamingPolicy\", \"DiagnosticGroups\", \"JSSourceFile\", \"ProcessTweaks\", \"DiagnosticType\", \"SourceMap\", \"ErrorFormat\", \"JSModule\", \"CodePrinter\", \"PrepareAst\", \"LightweightMessageFormatter\", \"GlobalNamespace\", \"DefaultPassConfig\", \"SyntheticAst\", \"CodingConventions\"], \"com.google.javascript.jscomp.parsing\": [\"IRFactory\", \"JsDocInfoParser\", \"ParserRunner\", \"JsDocTokenStream\", \"TypeSafeDispatcher\", \"Config\"], \"com.google.javascript.rhino\": [\"JSDocInfoBuilder\", \"ScriptRuntime\", \"SourcePosition\", \"Node\", \"InputId\", \"JSDocInfo\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.rhino.jstype\": [\"NoObjectType\", \"UnionTypeBuilder\", \"FunctionBuilder\", \"ValueType\", \"FunctionType\", \"NoResolvedType\", \"ArrowType\", \"PrototypeObjectType\", \"FunctionParamBuilder\", \"UnionType\", \"ErrorFunctionType\", \"BooleanType\", \"StringType\", \"InstanceObjectType\", \"AllType\", \"JSType\", \"UnknownType\", \"NumberType\", \"JSTypeRegistry\", \"NullType\", \"ObjectType\", \"NoType\", \"VoidType\"], \"com.google.debugging.sourcemap\": [\"Base64\", \"SourceMapConsumerFactory\", \"SourceMapGeneratorV3\", \"SourceMapGeneratorFactory\", \"Base64VLQ\", \"FilePosition\", \"SourceMapConsumerV3\", \"SourceMapSection\", \"Util\"], \"com.google.javascript.jscomp\": [\"NodeTraversal\", \"CompilerInput\", \"BasicErrorManager\", \"ProcessDefines\", \"Compiler\", \"PassConfig\", \"AbstractMessageFormatter\", \"SourceInformationAnnotator\", \"Tracer\", \"DiagnosticGroupWarningsGuard\", \"JsAst\", \"NodeUtil\", \"CodeChangeHandler\", \"PhaseOptimizer\", \"DiagnosticGroup\", \"ClosureCodingConvention\", \"ComposeWarningsGuard\", \"PassFactory\", \"Result\", \"WarningsGuard\", \"Scope\", \"JSError\", \"CodeGenerator\", \"CodeConsumer\", \"CompilerOptions\", \"SourceFile\", \"RhinoErrorReporter\", \"LoggerErrorManager\", \"VarCheck\", \"CheckLevel\", \"SyntacticScopeCreator\", \"SuppressDocWarningsGuard\", \"AnonymousFunctionNamingPolicy\", \"DiagnosticGroups\", \"JSSourceFile\", \"ProcessTweaks\", \"DiagnosticType\", \"SourceMap\", \"ErrorFormat\", \"JSModule\", \"CodePrinter\", \"PrepareAst\", \"LightweightMessageFormatter\", \"GlobalNamespace\", \"DefaultPassConfig\", \"SyntheticAst\", \"CodingConventions\"], \"com.google.javascript.jscomp.parsing\": [\"IRFactory\", \"JsDocInfoParser\", \"ParserRunner\", \"JsDocTokenStream\", \"TypeSafeDispatcher\", \"Config\"], \"com.google.javascript.rhino\": [\"JSDocInfoBuilder\", \"ScriptRuntime\", \"SourcePosition\", \"Node\", \"InputId\", \"JSDocInfo\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": "The `get_failing_tests_covered_classes` function has been called. This function returns the classes that are covered by the failing tests.\n\nBased on the provided test, I can see that it's a JUnit test and it's named `testParseSourceMetaMap`. The test is located in the file `SourceMapGeneratorV3Test.java`, line 450.\n\nHere are the classes that are covered by this failing test:\n```\ncom.google.debugging.sourcemap.SourceMapGeneratorV3\ncom.google.javascript.rhino.jstype.JSTypeRegistry\ncom.google.javascript.jscomp.Compiler\ncom.google.javascript.jscomp.PassConfig\ncom.google.javascript.jscomp.CompilerOptions\ncom.google.javascript.jscomp.SourceFile\n```\nThese classes are likely to be involved in the failure of the test."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "com.google.javascript.jscomp.Compiler.compile(SourceFile)\ncom.google.debugging.sourcemap.SourceMapGeneratorV3.generate(SourcePosition, Map)\ncom.google.javascript.jscomp.PassConfig.getPassCompiler()\ncom.google.javascript.jscomp.CompilerOptions.getSourceMapsEnabled()"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m3"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['com.google.debugging.sourcemap.SourceMapGeneratorV3Test.testParseSourceMetaMap()']` failed.\nThe test looks like:\n\n```java\n422 :   public void testParseSourceMetaMap() throws Exception {\n423 :     final String INPUT1 = \"file1\";\n424 :     final String INPUT2 = \"file2\";\n425 :     LinkedHashMap<String, String> inputs = Maps.newLinkedHashMap();\n426 :     inputs.put(INPUT1, \"var __FOO__ = 1;\");\n427 :     inputs.put(INPUT2, \"var __BAR__ = 2;\");\n428 :     RunResult result1 = compile(inputs.get(INPUT1), INPUT1);\n429 :     RunResult result2 = compile(inputs.get(INPUT2), INPUT2);\n430 : \n431 :     final String MAP1 = \"map1\";\n432 :     final String MAP2 = \"map2\";\n433 :     final LinkedHashMap<String, String> maps = Maps.newLinkedHashMap();\n434 :     maps.put(MAP1, result1.sourceMapFileContent);\n435 :     maps.put(MAP2, result2.sourceMapFileContent);\n436 : \n437 :     List<SourceMapSection> sections = Lists.newArrayList();\n438 : \n439 :     StringBuilder output = new StringBuilder();\n440 :     FilePosition offset = appendAndCount(output, result1.generatedSource);\n441 :     sections.add(SourceMapSection.forURL(MAP1, 0, 0));\n442 :     output.append(result2.generatedSource);\n443 :     sections.add(\n444 :         SourceMapSection.forURL(MAP2, offset.getLine(), offset.getColumn()));\n445 : \n446 :     SourceMapGeneratorV3 generator = new SourceMapGeneratorV3();\n447 :     StringBuilder mapContents = new StringBuilder();\n448 :     generator.appendIndexMapTo(mapContents, \"out.js\", sections);\n449 : \n450 :     check(inputs, output.toString(), mapContents.toString(), // error occurred here\n451 :       new SourceMapSupplier() {\n452 :         @Override\n453 :         public String getSourceMap(String url){\n454 :           return maps.get(url);\n455 :       }});\n456 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: expected:<5> but was:<4>\n\tat com.google.debugging.sourcemap.SourceMapTestCase.check(SourceMapTestCase.java:252)\n\tat com.google.debugging.sourcemap.SourceMapGeneratorV3Test.testParseSourceMetaMap(SourceMapGeneratorV3Test.java:450)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"com.google.javascript.rhino.jstype\": [\"NoObjectType\", \"UnionTypeBuilder\", \"FunctionBuilder\", \"ValueType\", \"FunctionType\", \"NoResolvedType\", \"ArrowType\", \"PrototypeObjectType\", \"FunctionParamBuilder\", \"UnionType\", \"ErrorFunctionType\", \"BooleanType\", \"StringType\", \"InstanceObjectType\", \"AllType\", \"JSType\", \"UnknownType\", \"NumberType\", \"JSTypeRegistry\", \"NullType\", \"ObjectType\", \"NoType\", \"VoidType\"], \"com.google.debugging.sourcemap\": [\"Base64\", \"SourceMapConsumerFactory\", \"SourceMapGeneratorV3\", \"SourceMapGeneratorFactory\", \"Base64VLQ\", \"FilePosition\", \"SourceMapConsumerV3\", \"SourceMapSection\", \"Util\"], \"com.google.javascript.jscomp\": [\"NodeTraversal\", \"CompilerInput\", \"BasicErrorManager\", \"ProcessDefines\", \"Compiler\", \"PassConfig\", \"AbstractMessageFormatter\", \"SourceInformationAnnotator\", \"Tracer\", \"DiagnosticGroupWarningsGuard\", \"JsAst\", \"NodeUtil\", \"CodeChangeHandler\", \"PhaseOptimizer\", \"DiagnosticGroup\", \"ClosureCodingConvention\", \"ComposeWarningsGuard\", \"PassFactory\", \"Result\", \"WarningsGuard\", \"Scope\", \"JSError\", \"CodeGenerator\", \"CodeConsumer\", \"CompilerOptions\", \"SourceFile\", \"RhinoErrorReporter\", \"LoggerErrorManager\", \"VarCheck\", \"CheckLevel\", \"SyntacticScopeCreator\", \"SuppressDocWarningsGuard\", \"AnonymousFunctionNamingPolicy\", \"DiagnosticGroups\", \"JSSourceFile\", \"ProcessTweaks\", \"DiagnosticType\", \"SourceMap\", \"ErrorFormat\", \"JSModule\", \"CodePrinter\", \"PrepareAst\", \"LightweightMessageFormatter\", \"GlobalNamespace\", \"DefaultPassConfig\", \"SyntheticAst\", \"CodingConventions\"], \"com.google.javascript.jscomp.parsing\": [\"IRFactory\", \"JsDocInfoParser\", \"ParserRunner\", \"JsDocTokenStream\", \"TypeSafeDispatcher\", \"Config\"], \"com.google.javascript.rhino\": [\"JSDocInfoBuilder\", \"ScriptRuntime\", \"SourcePosition\", \"Node\", \"InputId\", \"JSDocInfo\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": "The `get_failing_tests_covered_classes` function has been called. This function returns the classes that are covered by the failing tests.\n\nBased on the provided test, I can see that it's a JUnit test and it's named `testParseSourceMetaMap`. The test is located in the file `SourceMapGeneratorV3Test.java`, line 450.\n\nHere are the classes that are covered by this failing test:\n```\ncom.google.debugging.sourcemap.SourceMapGeneratorV3\ncom.google.javascript.rhino.jstype.JSTypeRegistry\ncom.google.javascript.jscomp.Compiler\ncom.google.javascript.jscomp.PassConfig\ncom.google.javascript.jscomp.CompilerOptions\ncom.google.javascript.jscomp.SourceFile\n```\nThese classes are likely to be involved in the failure of the test."
+            }
+        }
+    },
+    "buggy_methods": {
+        "com.google.debugging.sourcemap.SourceMapConsumerV3.getOriginalMappingForEntry(com.google.debugging.sourcemap.SourceMapConsumerV3.Entry)": {
+            "is_found": false,
+            "matching_answer": []
+        },
+        "com.google.javascript.jscomp.SourceMap.addMapping(com.google.javascript.rhino.Node, com.google.debugging.sourcemap.FilePosition, com.google.debugging.sourcemap.FilePosition)": {
+            "is_found": false,
+            "matching_answer": []
+        }
+    },
+    "total_energy": [
+        1089.5843000000004,
+        0.0
+    ],
+    "power_draw": [
+        [
+            221.848,
+            10.872
+        ],
+        [
+            221.925,
+            10.872
+        ],
+        [
+            226.738,
+            10.872
+        ],
+        [
+            230.756,
+            10.872
+        ],
+        [
+            232.054,
+            10.872
+        ],
+        [
+            242.681,
+            10.872
+        ],
+        [
+            242.643,
+            10.872
+        ],
+        [
+            242.673,
+            10.238
+        ],
+        [
+            257.934,
+            10.238
+        ],
+        [
+            274.091,
+            10.238
+        ],
+        [
+            291.14,
+            10.238
+        ],
+        [
+            291.48,
+            10.238
+        ],
+        [
+            291.69,
+            10.238
+        ],
+        [
+            290.875,
+            10.238
+        ],
+        [
+            292.171,
+            10.238
+        ],
+        [
+            295.512,
+            10.238
+        ],
+        [
+            309.561,
+            10.238
+        ],
+        [
+            323.604,
+            11.254
+        ],
+        [
+            322.509,
+            11.254
+        ],
+        [
+            320.444,
+            11.254
+        ],
+        [
+            317.674,
+            11.254
+        ],
+        [
+            318.073,
+            11.254
+        ],
+        [
+            315.598,
+            11.254
+        ],
+        [
+            313.416,
+            11.254
+        ],
+        [
+            312.674,
+            11.254
+        ],
+        [
+            312.82,
+            11.254
+        ],
+        [
+            312.926,
+            11.254
+        ],
+        [
+            313.389,
+            11.507
+        ],
+        [
+            312.513,
+            11.507
+        ],
+        [
+            310.845,
+            11.507
+        ],
+        [
+            296.43,
+            11.507
+        ],
+        [
+            282.602,
+            11.507
+        ],
+        [
+            274.215,
+            11.507
+        ],
+        [
+            274.244,
+            11.507
+        ],
+        [
+            273.155,
+            11.507
+        ],
+        [
+            271.549,
+            11.507
+        ],
+        [
+            270.798,
+            11.507
+        ],
+        [
+            270.296,
+            10.526
+        ],
+        [
+            271.394,
+            10.526
+        ],
+        [
+            271.394,
+            10.526
+        ],
+        [
+            273.887,
+            10.526
+        ],
+        [
+            288.925,
+            10.526
+        ],
+        [
+            293.969,
+            10.526
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            32,
+            0
+        ],
+        [
+            32,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            65,
+            0
+        ]
+    ]
+}

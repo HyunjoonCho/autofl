@@ -1,0 +1,948 @@
+{
+    "time_taken": 8.594395637512207,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.apache.commons.lang.EntitiesTest.testNumberOverflow()']` failed.\nThe test looks like:\n\n```java\n200 :     public void testNumberOverflow() throws Exception {\n201 :         doTestUnescapeEntity(\"&#12345678;\", \"&#12345678;\"); // error occurred here\n205 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.ComparisonFailure: expected:<[&#12345678;]> but was:<[\u614e]>\n\tat org.apache.commons.lang.EntitiesTest.doTestUnescapeEntity(EntitiesTest.java:101)\n\tat org.apache.commons.lang.EntitiesTest.testNumberOverflow(EntitiesTest.java:201)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang\": [\"IntHashMap\", \"Entities\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"org.apache.commons.lang.Entities\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".unescape(java.lang.String)\", \".PrimitiveEntityMap.add(java.lang.String, int)\", \".fillWithHtml40Entities(org.apache.commons.lang.Entities)\", \".addEntities(java.lang.String[][])\", \".addEntity(java.lang.String, int)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.Entities.unescape\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.Entities.unescape(java.lang.String). It looks like:\\n```java\\n813 :     public String unescape(String str) {\\n814 :         int firstAmp = str.indexOf('&');\\n815 :         if (firstAmp < 0) {\\n816 :             return str;\\n817 :         }\\n818 : \\n819 :         StringBuffer buf = new StringBuffer(str.length());\\n820 :         buf.append(str.substring(0, firstAmp));\\n821 :         for (int i = firstAmp; i < str.length(); ++i) {\\n822 :             char ch = str.charAt(i);\\n823 :             if (ch == '&') {\\n824 :                 int semi = str.indexOf(';', i + 1);\\n825 :                 if (semi == -1) {\\n826 :                     buf.append(ch);\\n827 :                     continue;\\n828 :                 }\\n829 :                 int amph = str.indexOf('&', i + 1);\\n830 :                 if( amph != -1 && amph < semi ) {\\n831 :                     // Then the text looks like &...&...;\\n832 :                     buf.append(ch);\\n833 :                     continue;\\n834 :                 }\\n835 :                 String entityName = str.substring(i + 1, semi);\\n836 :                 int entityValue;\\n837 :                 if (entityName.length() == 0) {\\n838 :                     entityValue = -1;\\n839 :                 } else if (entityName.charAt(0) == '#') {\\n840 :                     if (entityName.length() == 1) {\\n841 :                         entityValue = -1;\\n842 :                     } else {\\n843 :                         char charAt1 = entityName.charAt(1);\\n844 :                         try {\\n845 :                             if (charAt1 == 'x' || charAt1=='X') {\\n846 :                                 entityValue = Integer.valueOf(entityName.substring(2), 16).intValue();\\n847 :                             } else {\\n848 :                                 entityValue = Integer.parseInt(entityName.substring(1));\\n849 :                             }\\n850 :                         } catch (NumberFormatException ex) {\\n851 :                             entityValue = -1;\\n852 :                         }\\n853 :                     }\\n854 :                 } else {\\n855 :                     entityValue = this.entityValue(entityName);\\n856 :                 }\\n857 :                 if (entityValue == -1) {\\n858 :                     buf.append('&');\\n859 :                     buf.append(entityName);\\n860 :                     buf.append(';');\\n861 :                 } else {\\n862 :                     buf.append((char) (entityValue));\\n863 :                 }\\n864 :                 i = semi;\\n865 :             } else {\\n866 :                 buf.append(ch);\\n867 :             }\\n868 :         }\\n869 :         return buf.toString();\\n870 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.Entities.fillWithHtml40Entities\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.Entities.fillWithHtml40Entities(org.apache.commons.lang.Entities). It looks like:\\n```java\\n387 :     static void fillWithHtml40Entities(Entities entities) {\\n388 :         entities.addEntities(BASIC_ARRAY);\\n389 :         entities.addEntities(ISO8859_1_ARRAY);\\n390 :         entities.addEntities(HTML40_ARRAY);\\n391 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"org.apache.commons.lang.IntHashMap\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".Entry.Entry(int, int, java.lang.Object, org.apache.commons.lang.IntHashMap.Entry)\", \".IntHashMap()\", \".IntHashMap(int, float)\", \".rehash()\", \".put(int, java.lang.Object)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.Entities.unescape\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.Entities.unescape(java.lang.String). It looks like:\\n```java\\n813 :     public String unescape(String str) {\\n814 :         int firstAmp = str.indexOf('&');\\n815 :         if (firstAmp < 0) {\\n816 :             return str;\\n817 :         }\\n818 : \\n819 :         StringBuffer buf = new StringBuffer(str.length());\\n820 :         buf.append(str.substring(0, firstAmp));\\n821 :         for (int i = firstAmp; i < str.length(); ++i) {\\n822 :             char ch = str.charAt(i);\\n823 :             if (ch == '&') {\\n824 :                 int semi = str.indexOf(';', i + 1);\\n825 :                 if (semi == -1) {\\n826 :                     buf.append(ch);\\n827 :                     continue;\\n828 :                 }\\n829 :                 int amph = str.indexOf('&', i + 1);\\n830 :                 if( amph != -1 && amph < semi ) {\\n831 :                     // Then the text looks like &...&...;\\n832 :                     buf.append(ch);\\n833 :                     continue;\\n834 :                 }\\n835 :                 String entityName = str.substring(i + 1, semi);\\n836 :                 int entityValue;\\n837 :                 if (entityName.length() == 0) {\\n838 :                     entityValue = -1;\\n839 :                 } else if (entityName.charAt(0) == '#') {\\n840 :                     if (entityName.length() == 1) {\\n841 :                         entityValue = -1;\\n842 :                     } else {\\n843 :                         char charAt1 = entityName.charAt(1);\\n844 :                         try {\\n845 :                             if (charAt1 == 'x' || charAt1=='X') {\\n846 :                                 entityValue = Integer.valueOf(entityName.substring(2), 16).intValue();\\n847 :                             } else {\\n848 :                                 entityValue = Integer.parseInt(entityName.substring(1));\\n849 :                             }\\n850 :                         } catch (NumberFormatException ex) {\\n851 :                             entityValue = -1;\\n852 :                         }\\n853 :                     }\\n854 :                 } else {\\n855 :                     entityValue = this.entityValue(entityName);\\n856 :                 }\\n857 :                 if (entityValue == -1) {\\n858 :                     buf.append('&');\\n859 :                     buf.append(entityName);\\n860 :                     buf.append(';');\\n861 :                 } else {\\n862 :                     buf.append((char) (entityValue));\\n863 :                 }\\n864 :                 i = semi;\\n865 :             } else {\\n866 :                 buf.append(ch);\\n867 :             }\\n868 :         }\\n869 :         return buf.toString();\\n870 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": "A debugging assistant!\n\nThank you for providing the code snippet and the signature of the function. I'll help you identify the issue with the failing test.\n\nFrom what I can see, there's a `NumberFormatException` being caught in line 850. This means that the code is expecting an integer value to be parsed from the `entityName` substring, but it's not a valid integer. In this case, the code sets `entityValue` to -1 and continues processing.\n\nTo help you debug this issue, I'd like to ask a few questions:\n\n1. What is the failing test case?\n2. Can you provide more context about what kind of data is being passed into the `unescape()` function?\n3. Are there any specific error messages or exceptions being thrown?\n\nPlease share more information, and I'll do my best to help you identify and fix the issue!"
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "org.apache.commons.lang.Entities.entityValue(java.lang.String)\nInteger.parseInt(java.lang.String)"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m9"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10"
+                ],
+                "response_message": "m11"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10",
+                    "m11",
+                    "m12"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10",
+                    "m11",
+                    "m12",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m13"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.apache.commons.lang.EntitiesTest.testNumberOverflow()']` failed.\nThe test looks like:\n\n```java\n200 :     public void testNumberOverflow() throws Exception {\n201 :         doTestUnescapeEntity(\"&#12345678;\", \"&#12345678;\"); // error occurred here\n205 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.ComparisonFailure: expected:<[&#12345678;]> but was:<[\u614e]>\n\tat org.apache.commons.lang.EntitiesTest.doTestUnescapeEntity(EntitiesTest.java:101)\n\tat org.apache.commons.lang.EntitiesTest.testNumberOverflow(EntitiesTest.java:201)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.apache.commons.lang\": [\"IntHashMap\", \"Entities\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"org.apache.commons.lang.Entities\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".unescape(java.lang.String)\", \".PrimitiveEntityMap.add(java.lang.String, int)\", \".fillWithHtml40Entities(org.apache.commons.lang.Entities)\", \".addEntities(java.lang.String[][])\", \".addEntity(java.lang.String, int)\"]"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang.Entities.unescape\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang.Entities.unescape(java.lang.String). It looks like:\\n```java\\n813 :     public String unescape(String str) {\\n814 :         int firstAmp = str.indexOf('&');\\n815 :         if (firstAmp < 0) {\\n816 :             return str;\\n817 :         }\\n818 : \\n819 :         StringBuffer buf = new StringBuffer(str.length());\\n820 :         buf.append(str.substring(0, firstAmp));\\n821 :         for (int i = firstAmp; i < str.length(); ++i) {\\n822 :             char ch = str.charAt(i);\\n823 :             if (ch == '&') {\\n824 :                 int semi = str.indexOf(';', i + 1);\\n825 :                 if (semi == -1) {\\n826 :                     buf.append(ch);\\n827 :                     continue;\\n828 :                 }\\n829 :                 int amph = str.indexOf('&', i + 1);\\n830 :                 if( amph != -1 && amph < semi ) {\\n831 :                     // Then the text looks like &...&...;\\n832 :                     buf.append(ch);\\n833 :                     continue;\\n834 :                 }\\n835 :                 String entityName = str.substring(i + 1, semi);\\n836 :                 int entityValue;\\n837 :                 if (entityName.length() == 0) {\\n838 :                     entityValue = -1;\\n839 :                 } else if (entityName.charAt(0) == '#') {\\n840 :                     if (entityName.length() == 1) {\\n841 :                         entityValue = -1;\\n842 :                     } else {\\n843 :                         char charAt1 = entityName.charAt(1);\\n844 :                         try {\\n845 :                             if (charAt1 == 'x' || charAt1=='X') {\\n846 :                                 entityValue = Integer.valueOf(entityName.substring(2), 16).intValue();\\n847 :                             } else {\\n848 :                                 entityValue = Integer.parseInt(entityName.substring(1));\\n849 :                             }\\n850 :                         } catch (NumberFormatException ex) {\\n851 :                             entityValue = -1;\\n852 :                         }\\n853 :                     }\\n854 :                 } else {\\n855 :                     entityValue = this.entityValue(entityName);\\n856 :                 }\\n857 :                 if (entityValue == -1) {\\n858 :                     buf.append('&');\\n859 :                     buf.append(entityName);\\n860 :                     buf.append(';');\\n861 :                 } else {\\n862 :                     buf.append((char) (entityValue));\\n863 :                 }\\n864 :                 i = semi;\\n865 :             } else {\\n866 :                 buf.append(ch);\\n867 :             }\\n868 :         }\\n869 :         return buf.toString();\\n870 :     }\\n```\""
+            },
+            "m9": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang.Entities.fillWithHtml40Entities\"}"
+                }
+            },
+            "m10": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang.Entities.fillWithHtml40Entities(org.apache.commons.lang.Entities). It looks like:\\n```java\\n387 :     static void fillWithHtml40Entities(Entities entities) {\\n388 :         entities.addEntities(BASIC_ARRAY);\\n389 :         entities.addEntities(ISO8859_1_ARRAY);\\n390 :         entities.addEntities(HTML40_ARRAY);\\n391 :     }\\n```\""
+            },
+            "m11": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"org.apache.commons.lang.IntHashMap\"}"
+                }
+            },
+            "m12": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".Entry.Entry(int, int, java.lang.Object, org.apache.commons.lang.IntHashMap.Entry)\", \".IntHashMap()\", \".IntHashMap(int, float)\", \".rehash()\", \".put(int, java.lang.Object)\"]"
+            },
+            "m13": {
+                "role": "assistant",
+                "content": "A debugging assistant!\n\nThank you for providing the code snippet and the signature of the function. I'll help you identify the issue with the failing test.\n\nFrom what I can see, there's a `NumberFormatException` being caught in line 850. This means that the code is expecting an integer value to be parsed from the `entityName` substring, but it's not a valid integer. In this case, the code sets `entityValue` to -1 and continues processing.\n\nTo help you debug this issue, I'd like to ask a few questions:\n\n1. What is the failing test case?\n2. Can you provide more context about what kind of data is being passed into the `unescape()` function?\n3. Are there any specific error messages or exceptions being thrown?\n\nPlease share more information, and I'll do my best to help you identify and fix the issue!"
+            }
+        }
+    },
+    "buggy_methods": {
+        "org.apache.commons.lang.Entities.unescape(java.lang.String)": {
+            "is_found": false,
+            "matching_answer": []
+        }
+    },
+    "total_energy": [
+        2264.7873000000004,
+        0.0
+    ],
+    "power_draw": [
+        [
+            221.977,
+            11.225
+        ],
+        [
+            212.183,
+            11.225
+        ],
+        [
+            220.078,
+            11.225
+        ],
+        [
+            235.856,
+            11.225
+        ],
+        [
+            252.031,
+            11.225
+        ],
+        [
+            244.955,
+            11.225
+        ],
+        [
+            230.666,
+            10.778
+        ],
+        [
+            235.776,
+            10.778
+        ],
+        [
+            254.83,
+            10.778
+        ],
+        [
+            272.085,
+            10.778
+        ],
+        [
+            289.572,
+            10.778
+        ],
+        [
+            302.431,
+            10.778
+        ],
+        [
+            293.343,
+            10.778
+        ],
+        [
+            277.739,
+            10.778
+        ],
+        [
+            267.613,
+            10.778
+        ],
+        [
+            277.785,
+            10.64
+        ],
+        [
+            293.87,
+            10.64
+        ],
+        [
+            305.275,
+            10.64
+        ],
+        [
+            303.535,
+            10.64
+        ],
+        [
+            301.424,
+            10.64
+        ],
+        [
+            299.148,
+            10.64
+        ],
+        [
+            297.48,
+            10.64
+        ],
+        [
+            306.986,
+            10.64
+        ],
+        [
+            322.646,
+            10.64
+        ],
+        [
+            331.813,
+            10.64
+        ],
+        [
+            328.411,
+            11.512
+        ],
+        [
+            328.016,
+            11.512
+        ],
+        [
+            327.393,
+            11.512
+        ],
+        [
+            326.128,
+            11.512
+        ],
+        [
+            318.182,
+            11.512
+        ],
+        [
+            303.015,
+            11.512
+        ],
+        [
+            287.613,
+            11.512
+        ],
+        [
+            285.358,
+            11.512
+        ],
+        [
+            283.274,
+            11.512
+        ],
+        [
+            281.941,
+            11.512
+        ],
+        [
+            281.27,
+            11.105
+        ],
+        [
+            281.1,
+            11.105
+        ],
+        [
+            281.063,
+            11.105
+        ],
+        [
+            280.276,
+            11.105
+        ],
+        [
+            286.893,
+            11.105
+        ],
+        [
+            300.625,
+            11.105
+        ],
+        [
+            314.026,
+            11.105
+        ],
+        [
+            308.913,
+            11.105
+        ],
+        [
+            294.95,
+            11.105
+        ],
+        [
+            280.985,
+            11.105
+        ],
+        [
+            280.169,
+            10.803
+        ],
+        [
+            278.593,
+            10.803
+        ],
+        [
+            277.932,
+            10.803
+        ],
+        [
+            277.1,
+            10.803
+        ],
+        [
+            278.894,
+            10.803
+        ],
+        [
+            271.706,
+            10.803
+        ],
+        [
+            258.301,
+            10.803
+        ],
+        [
+            250.359,
+            10.803
+        ],
+        [
+            268.757,
+            10.803
+        ],
+        [
+            283.856,
+            10.803
+        ],
+        [
+            284.576,
+            11.023
+        ],
+        [
+            284.598,
+            11.023
+        ],
+        [
+            286.376,
+            11.023
+        ],
+        [
+            288.239,
+            11.023
+        ],
+        [
+            289.682,
+            11.023
+        ],
+        [
+            299.602,
+            11.023
+        ],
+        [
+            313.174,
+            11.023
+        ],
+        [
+            326.946,
+            11.023
+        ],
+        [
+            323.017,
+            11.023
+        ],
+        [
+            322.451,
+            11.023
+        ],
+        [
+            322.241,
+            11.539
+        ],
+        [
+            321.815,
+            11.539
+        ],
+        [
+            319.317,
+            11.539
+        ],
+        [
+            316.892,
+            11.539
+        ],
+        [
+            313.929,
+            11.539
+        ],
+        [
+            311.447,
+            11.539
+        ],
+        [
+            311.293,
+            11.539
+        ],
+        [
+            311.006,
+            11.539
+        ],
+        [
+            311.112,
+            11.539
+        ],
+        [
+            310.687,
+            11.539
+        ],
+        [
+            309.265,
+            11.046
+        ],
+        [
+            295.19,
+            11.046
+        ],
+        [
+            281.507,
+            11.046
+        ],
+        [
+            278.165,
+            11.046
+        ],
+        [
+            278.123,
+            11.046
+        ],
+        [
+            279.111,
+            11.046
+        ],
+        [
+            277.541,
+            11.046
+        ],
+        [
+            278.995,
+            11.046
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            9,
+            0
+        ],
+        [
+            9,
+            0
+        ],
+        [
+            78,
+            0
+        ],
+        [
+            78,
+            0
+        ],
+        [
+            55,
+            0
+        ],
+        [
+            55,
+            0
+        ],
+        [
+            9,
+            0
+        ],
+        [
+            9,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            12,
+            0
+        ],
+        [
+            12,
+            0
+        ],
+        [
+            62,
+            0
+        ],
+        [
+            62,
+            0
+        ],
+        [
+            82,
+            0
+        ],
+        [
+            82,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            56,
+            0
+        ],
+        [
+            56,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            21,
+            0
+        ],
+        [
+            21,
+            0
+        ],
+        [
+            37,
+            0
+        ],
+        [
+            37,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            16,
+            0
+        ],
+        [
+            16,
+            0
+        ],
+        [
+            50,
+            0
+        ],
+        [
+            50,
+            0
+        ],
+        [
+            97,
+            0
+        ],
+        [
+            97,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            70,
+            0
+        ],
+        [
+            70,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            90,
+            0
+        ],
+        [
+            90,
+            0
+        ]
+    ]
+}

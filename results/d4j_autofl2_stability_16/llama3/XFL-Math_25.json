@@ -1,0 +1,1147 @@
+{
+    "time_taken": 12.087579011917114,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.apache.commons.math3.optimization.fitting.HarmonicFitterTest.testMath844()']` failed.\nThe test looks like:\n\n```java\n181 :     @Test(expected=MathIllegalStateException.class)\n182 :     public void testMath844() {\n183 :         final double[] y = { 0, 1, 2, 3, 2, 1,\n184 :                              0, -1, -2, -3, -2, -1,\n185 :                              0, 1, 2, 3, 2, 1,\n186 :                              0, -1, -2, -3, -2, -1,\n187 :                              0, 1, 2, 3, 2, 1, 0 };\n188 :         final int len = y.length;\n189 :         final WeightedObservedPoint[] points = new WeightedObservedPoint[len];\n190 :         for (int i = 0; i < len; i++) {\n191 :             points[i] = new WeightedObservedPoint(1, i, y[i]);\n192 :         }\n193 : \n194 :         final HarmonicFitter.ParameterGuesser guesser\n195 :             = new HarmonicFitter.ParameterGuesser(points);\n196 : \n197 :         // The guesser fails because the function is far from an harmonic\n198 :         // function: It is a triangular periodic function with amplitude 3\n199 :         // and period 12, and all sample points are taken at integer abscissae\n200 :         // so function values all belong to the integer subset {-3, -2, -1, 0,\n201 :         // 1, 2, 3}.\n202 :         guesser.guess();\n203 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: Expected exception: org.apache.commons.math3.exception.MathIllegalStateException\n\tat org.junit.internal.runners.statements.ExpectException.evaluate(ExpectException.java:32)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:271)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:70)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:50)\n\tat org.junit.runners.ParentRunner$3.run(ParentRunner.java:238)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:63)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:236)\n\tat org.junit.runners.ParentRunner.access$000(ParentRunner.java:53)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:229)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:309)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTestRunner.run(JUnitTestRunner.java:520)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.executeInVM(JUnitTask.java:1484)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute(JUnitTask.java:872)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.executeOrQueue(JUnitTask.java:1972)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute1(JUnitTask.java:824)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute(JUnitTask.java:2277)\n\tat org.apache.tools.ant.UnknownElement.execute(UnknownElement.java:291)\n\tat sun.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)\n\tat sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.lang.reflect.Method.invoke(Method.java:498)\n\tat org.apache.tools.ant.dispatch.DispatchUtils.execute(DispatchUtils.java:106)\n\tat org.apache.tools.ant.Task.perform(Task.java:348)\n\tat org.apache.tools.ant.Target.execute(Target.java:392)\n\tat org.apache.tools.ant.Target.performTasks(Target.java:413)\n\tat org.apache.tools.ant.Project.executeSortedTargets(Project.java:1399)\n\tat org.apache.tools.ant.Project.executeTarget(Project.java:1368)\n\tat org.apache.tools.ant.helper.DefaultExecutor.executeTargets(DefaultExecutor.java:41)\n\tat org.apache.tools.ant.Project.executeTargets(Project.java:1251)\n\tat org.apache.tools.ant.Main.runBuild(Main.java:811)\n\tat org.apache.tools.ant.Main.startAnt(Main.java:217)\n\tat org.apache.tools.ant.launch.Launcher.run(Launcher.java:280)\n\tat org.apache.tools.ant.launch.Launcher.main(Launcher.java:109)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.math3.optimization.fitting\": [\"HarmonicFitter\", \"WeightedObservedPoint\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".ParameterGuesser.guessAOmega()\", \".ParameterGuesser.ParameterGuesser(org.apache.commons.math3.optimization.fitting.WeightedObservedPoint[])\", \".ParameterGuesser.guess()\", \".ParameterGuesser.sortObservations()\", \".ParameterGuesser.guessPhi()\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guess\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"214 :         public double[] guess() {\\n215 :             sortObservations();\\n216 :             guessAOmega();\\n217 :             guessPhi();\\n218 :             return new double[] { a, omega, phi };\\n219 :         }\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_comments",
+                "arguments": "{\"signature\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guess\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_comments",
+            "content": "\"\\n         * Estimate a first guess of the coefficients.\\n         *\\n         * @return the guessed coefficients, in the following order:\\n         * <ul>\\n         *  <li>Amplitude</li>\\n         *  <li>Angular frequency</li>\\n         *  <li>Phase</li>\\n         * </ul>\\n         \""
+        },
+        {
+            "role": "assistant",
+            "content": "The test `testMath844` checks whether the `HarmonicFitter.ParameterGuesser.guess()` method correctly estimates a first guess of the coefficients. However, the test failure indicates that this is not the case.\n\nFollowing the execution path, we find that `HarmonicFitter.ParameterGuesser.guess()` calls `guessAOmega()`, which in turn is responsible for estimating the angular frequency (`omega`). This method may not be properly handling the given data points to estimate a correct value for `omega`."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guessAOmega()"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m9"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10"
+                ],
+                "response_message": "m11"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.apache.commons.math3.optimization.fitting.HarmonicFitterTest.testMath844()']` failed.\nThe test looks like:\n\n```java\n181 :     @Test(expected=MathIllegalStateException.class)\n182 :     public void testMath844() {\n183 :         final double[] y = { 0, 1, 2, 3, 2, 1,\n184 :                              0, -1, -2, -3, -2, -1,\n185 :                              0, 1, 2, 3, 2, 1,\n186 :                              0, -1, -2, -3, -2, -1,\n187 :                              0, 1, 2, 3, 2, 1, 0 };\n188 :         final int len = y.length;\n189 :         final WeightedObservedPoint[] points = new WeightedObservedPoint[len];\n190 :         for (int i = 0; i < len; i++) {\n191 :             points[i] = new WeightedObservedPoint(1, i, y[i]);\n192 :         }\n193 : \n194 :         final HarmonicFitter.ParameterGuesser guesser\n195 :             = new HarmonicFitter.ParameterGuesser(points);\n196 : \n197 :         // The guesser fails because the function is far from an harmonic\n198 :         // function: It is a triangular periodic function with amplitude 3\n199 :         // and period 12, and all sample points are taken at integer abscissae\n200 :         // so function values all belong to the integer subset {-3, -2, -1, 0,\n201 :         // 1, 2, 3}.\n202 :         guesser.guess();\n203 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: Expected exception: org.apache.commons.math3.exception.MathIllegalStateException\n\tat org.junit.internal.runners.statements.ExpectException.evaluate(ExpectException.java:32)\n\tat org.junit.runners.ParentRunner.runLeaf(ParentRunner.java:271)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:70)\n\tat org.junit.runners.BlockJUnit4ClassRunner.runChild(BlockJUnit4ClassRunner.java:50)\n\tat org.junit.runners.ParentRunner$3.run(ParentRunner.java:238)\n\tat org.junit.runners.ParentRunner$1.schedule(ParentRunner.java:63)\n\tat org.junit.runners.ParentRunner.runChildren(ParentRunner.java:236)\n\tat org.junit.runners.ParentRunner.access$000(ParentRunner.java:53)\n\tat org.junit.runners.ParentRunner$2.evaluate(ParentRunner.java:229)\n\tat org.junit.runners.ParentRunner.run(ParentRunner.java:309)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTestRunner.run(JUnitTestRunner.java:520)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.executeInVM(JUnitTask.java:1484)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute(JUnitTask.java:872)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.executeOrQueue(JUnitTask.java:1972)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute1(JUnitTask.java:824)\n\tat org.apache.tools.ant.taskdefs.optional.junit.JUnitTask.execute(JUnitTask.java:2277)\n\tat org.apache.tools.ant.UnknownElement.execute(UnknownElement.java:291)\n\tat sun.reflect.GeneratedMethodAccessor4.invoke(Unknown Source)\n\tat sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)\n\tat java.lang.reflect.Method.invoke(Method.java:498)\n\tat org.apache.tools.ant.dispatch.DispatchUtils.execute(DispatchUtils.java:106)\n\tat org.apache.tools.ant.Task.perform(Task.java:348)\n\tat org.apache.tools.ant.Target.execute(Target.java:392)\n\tat org.apache.tools.ant.Target.performTasks(Target.java:413)\n\tat org.apache.tools.ant.Project.executeSortedTargets(Project.java:1399)\n\tat org.apache.tools.ant.Project.executeTarget(Project.java:1368)\n\tat org.apache.tools.ant.helper.DefaultExecutor.executeTargets(DefaultExecutor.java:41)\n\tat org.apache.tools.ant.Project.executeTargets(Project.java:1251)\n\tat org.apache.tools.ant.Main.runBuild(Main.java:811)\n\tat org.apache.tools.ant.Main.startAnt(Main.java:217)\n\tat org.apache.tools.ant.launch.Launcher.run(Launcher.java:280)\n\tat org.apache.tools.ant.launch.Launcher.main(Launcher.java:109)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.apache.commons.math3.optimization.fitting\": [\"HarmonicFitter\", \"WeightedObservedPoint\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".ParameterGuesser.guessAOmega()\", \".ParameterGuesser.ParameterGuesser(org.apache.commons.math3.optimization.fitting.WeightedObservedPoint[])\", \".ParameterGuesser.guess()\", \".ParameterGuesser.sortObservations()\", \".ParameterGuesser.guessPhi()\"]"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guess\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"214 :         public double[] guess() {\\n215 :             sortObservations();\\n216 :             guessAOmega();\\n217 :             guessPhi();\\n218 :             return new double[] { a, omega, phi };\\n219 :         }\""
+            },
+            "m9": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_comments",
+                    "arguments": "{\"signature\": \"org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guess\"}"
+                }
+            },
+            "m10": {
+                "role": "function",
+                "name": "get_comments",
+                "content": "\"\\n         * Estimate a first guess of the coefficients.\\n         *\\n         * @return the guessed coefficients, in the following order:\\n         * <ul>\\n         *  <li>Amplitude</li>\\n         *  <li>Angular frequency</li>\\n         *  <li>Phase</li>\\n         * </ul>\\n         \""
+            },
+            "m11": {
+                "role": "assistant",
+                "content": "The test `testMath844` checks whether the `HarmonicFitter.ParameterGuesser.guess()` method correctly estimates a first guess of the coefficients. However, the test failure indicates that this is not the case.\n\nFollowing the execution path, we find that `HarmonicFitter.ParameterGuesser.guess()` calls `guessAOmega()`, which in turn is responsible for estimating the angular frequency (`omega`). This method may not be properly handling the given data points to estimate a correct value for `omega`."
+            }
+        }
+    },
+    "buggy_methods": {
+        "org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guessAOmega()": {
+            "is_found": true,
+            "matching_answer": [
+                "org.apache.commons.math3.optimization.fitting.HarmonicFitter.ParameterGuesser.guessAOmega()"
+            ]
+        }
+    },
+    "total_energy": [
+        3239.463799999999,
+        0.0
+    ],
+    "power_draw": [
+        [
+            247.765,
+            10.92
+        ],
+        [
+            246.901,
+            10.92
+        ],
+        [
+            244.612,
+            10.92
+        ],
+        [
+            244.229,
+            10.92
+        ],
+        [
+            242.261,
+            10.92
+        ],
+        [
+            243.366,
+            10.92
+        ],
+        [
+            259.833,
+            10.92
+        ],
+        [
+            266.52,
+            10.92
+        ],
+        [
+            266.673,
+            10.92
+        ],
+        [
+            267.536,
+            10.92
+        ],
+        [
+            285.161,
+            10.793
+        ],
+        [
+            286.335,
+            10.793
+        ],
+        [
+            288.743,
+            10.793
+        ],
+        [
+            288.92,
+            10.793
+        ],
+        [
+            290.684,
+            10.793
+        ],
+        [
+            288.728,
+            10.793
+        ],
+        [
+            286.259,
+            10.793
+        ],
+        [
+            294.037,
+            10.793
+        ],
+        [
+            307.377,
+            10.793
+        ],
+        [
+            320.132,
+            10.793
+        ],
+        [
+            316.199,
+            10.845
+        ],
+        [
+            313.912,
+            10.845
+        ],
+        [
+            310.825,
+            10.845
+        ],
+        [
+            308.126,
+            10.845
+        ],
+        [
+            307.493,
+            10.845
+        ],
+        [
+            307.559,
+            10.845
+        ],
+        [
+            307.903,
+            10.845
+        ],
+        [
+            307.173,
+            10.845
+        ],
+        [
+            306.963,
+            10.845
+        ],
+        [
+            307.384,
+            10.845
+        ],
+        [
+            307.211,
+            11.209
+        ],
+        [
+            307.026,
+            11.209
+        ],
+        [
+            307.846,
+            11.209
+        ],
+        [
+            307.573,
+            11.209
+        ],
+        [
+            307.164,
+            11.209
+        ],
+        [
+            307.551,
+            11.209
+        ],
+        [
+            304.904,
+            11.209
+        ],
+        [
+            303.026,
+            11.209
+        ],
+        [
+            300.718,
+            11.209
+        ],
+        [
+            298.48,
+            11.209
+        ],
+        [
+            296.947,
+            11.265
+        ],
+        [
+            295.113,
+            11.265
+        ],
+        [
+            293.257,
+            11.265
+        ],
+        [
+            293.257,
+            11.265
+        ],
+        [
+            292.308,
+            11.265
+        ],
+        [
+            291.695,
+            11.265
+        ],
+        [
+            290.902,
+            11.265
+        ],
+        [
+            293.243,
+            11.265
+        ],
+        [
+            294.337,
+            11.265
+        ],
+        [
+            296.325,
+            11.265
+        ],
+        [
+            297.732,
+            10.872
+        ],
+        [
+            293.344,
+            10.872
+        ],
+        [
+            281.237,
+            10.872
+        ],
+        [
+            268.941,
+            10.872
+        ],
+        [
+            271.337,
+            10.872
+        ],
+        [
+            271.895,
+            10.872
+        ],
+        [
+            272.884,
+            10.872
+        ],
+        [
+            273.722,
+            10.872
+        ],
+        [
+            275.233,
+            10.872
+        ],
+        [
+            274.164,
+            10.872
+        ],
+        [
+            273.712,
+            10.629
+        ],
+        [
+            279.616,
+            10.629
+        ],
+        [
+            292.881,
+            10.629
+        ],
+        [
+            306.514,
+            10.629
+        ],
+        [
+            304.718,
+            10.629
+        ],
+        [
+            304.402,
+            10.629
+        ],
+        [
+            304.402,
+            10.629
+        ],
+        [
+            303.216,
+            10.629
+        ],
+        [
+            302.207,
+            10.629
+        ],
+        [
+            303.902,
+            10.629
+        ],
+        [
+            304.244,
+            11.329
+        ],
+        [
+            304.652,
+            11.329
+        ],
+        [
+            304.603,
+            11.329
+        ],
+        [
+            304.624,
+            11.329
+        ],
+        [
+            304.966,
+            11.329
+        ],
+        [
+            305.142,
+            11.329
+        ],
+        [
+            305.152,
+            11.329
+        ],
+        [
+            306.209,
+            11.329
+        ],
+        [
+            306.322,
+            11.329
+        ],
+        [
+            305.513,
+            11.329
+        ],
+        [
+            305.051,
+            11.005
+        ],
+        [
+            304.218,
+            11.005
+        ],
+        [
+            303.59,
+            11.005
+        ],
+        [
+            302.56,
+            11.005
+        ],
+        [
+            301.546,
+            11.005
+        ],
+        [
+            300.683,
+            11.005
+        ],
+        [
+            299.33,
+            11.005
+        ],
+        [
+            297.738,
+            11.005
+        ],
+        [
+            296.957,
+            11.005
+        ],
+        [
+            286.177,
+            11.005
+        ],
+        [
+            273.701,
+            11.161
+        ],
+        [
+            267.632,
+            11.161
+        ],
+        [
+            268.972,
+            11.161
+        ],
+        [
+            270.004,
+            11.161
+        ],
+        [
+            271.394,
+            11.161
+        ],
+        [
+            272.983,
+            11.161
+        ],
+        [
+            273.941,
+            11.161
+        ],
+        [
+            273.076,
+            11.161
+        ],
+        [
+            272.035,
+            11.161
+        ],
+        [
+            282.528,
+            11.161
+        ],
+        [
+            295.481,
+            10.875
+        ],
+        [
+            301.106,
+            10.875
+        ],
+        [
+            300.26,
+            10.875
+        ],
+        [
+            299.282,
+            10.875
+        ],
+        [
+            298.392,
+            10.875
+        ],
+        [
+            297.477,
+            10.875
+        ],
+        [
+            296.495,
+            10.875
+        ],
+        [
+            297.937,
+            10.875
+        ],
+        [
+            298.891,
+            10.875
+        ],
+        [
+            294.712,
+            10.875
+        ],
+        [
+            281.543,
+            10.85
+        ],
+        [
+            269.017,
+            10.85
+        ],
+        [
+            270.895,
+            10.85
+        ],
+        [
+            271.558,
+            10.85
+        ],
+        [
+            272.842,
+            10.85
+        ],
+        [
+            271.074,
+            10.85
+        ],
+        [
+            272.438,
+            10.85
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            88,
+            0
+        ],
+        [
+            88,
+            0
+        ],
+        [
+            89,
+            0
+        ],
+        [
+            89,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            15,
+            0
+        ],
+        [
+            15,
+            0
+        ],
+        [
+            44,
+            0
+        ],
+        [
+            44,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            59,
+            0
+        ],
+        [
+            59,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            90,
+            0
+        ],
+        [
+            90,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            44,
+            0
+        ],
+        [
+            44,
+            0
+        ],
+        [
+            14,
+            0
+        ],
+        [
+            14,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            95,
+            0
+        ],
+        [
+            95,
+            0
+        ],
+        [
+            77,
+            0
+        ],
+        [
+            77,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            91,
+            0
+        ],
+        [
+            91,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ]
+    ]
+}

@@ -1,0 +1,611 @@
+{
+    "time_taken": 5.86178183555603,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.apache.commons.lang3.text.ExtendedMessageFormatTest.testEqualsHashcode()']` failed.\nThe test looks like:\n\n```java\n270 :     public void testEqualsHashcode() {\n271 :         Map<String, ? extends FormatFactory> registry = Collections.singletonMap(\"testfmt\", new LowerCaseFormatFactory());\n272 :         Map<String, ? extends FormatFactory> otherRegitry = Collections.singletonMap(\"testfmt\", new UpperCaseFormatFactory());\n273 : \n274 :         String pattern = \"Pattern: {0,testfmt}\";\n275 :         ExtendedMessageFormat emf = new ExtendedMessageFormat(pattern, Locale.US, registry);\n276 : \n277 :         ExtendedMessageFormat other = null;\n278 : \n279 :         // Same object\n282 : \n283 :         // Equal Object\n284 :         other = new ExtendedMessageFormat(pattern, Locale.US, registry);\n287 : \n288 :         // Different Class\n289 :         other = new OtherExtendedMessageFormat(pattern, Locale.US, registry);\n292 :         \n293 :         // Different pattern\n294 :         other = new ExtendedMessageFormat(\"X\" + pattern, Locale.US, registry);\n297 : \n298 :         // Different registry\n299 :         other = new ExtendedMessageFormat(pattern, Locale.US, otherRegitry);\n301 :         assertFalse(\"registry, hashcode()\", emf.hashCode() == other.hashCode()); // error occurred here\n307 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: registry, hashcode()\n\tat org.apache.commons.lang3.text.ExtendedMessageFormatTest.testEqualsHashcode(ExtendedMessageFormatTest.java:301)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang3.text\": [\"ExtendedMessageFormat\", \"StrMatcher\"], \"org.apache.commons.lang3\": [\"Validate\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"org.apache.commons.lang3.text.ExtendedMessageFormat\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".applyPattern(java.lang.String)\", \".getFormat(java.lang.String)\", \".readArgumentIndex(java.lang.String, java.text.ParsePosition)\", \".parseFormatDescription(java.lang.String, java.text.ParsePosition)\", \".insertFormats(java.lang.String, java.util.ArrayList<java.lang.String>)\", \".seekNonWs(java.lang.String, java.text.ParsePosition)\", \".next(java.text.ParsePosition)\", \".containsElements(java.util.Collection<?>)\", \".ExtendedMessageFormat(java.lang.String, java.util.Locale, java.util.Map<java.lang.String, ? extends org.apache.commons.lang3.text.FormatFactory>)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang3.text.ExtendedMessageFormat.applyPattern\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang3.text.ExtendedMessageFormat.applyPattern(java.lang.String). It looks like:\\n```java\\n144 :     @Override\\n145 :     public final void applyPattern(String pattern) {\\n146 :         if (registry == null) {\\n147 :             super.applyPattern(pattern);\\n148 :             toPattern = super.toPattern();\\n149 :             return;\\n150 :         }\\n151 :         ArrayList<Format> foundFormats = new ArrayList<Format>();\\n152 :         ArrayList<String> foundDescriptions = new ArrayList<String>();\\n153 :         StringBuilder stripCustom = new StringBuilder(pattern.length());\\n154 : \\n155 :         ParsePosition pos = new ParsePosition(0);\\n156 :         char[] c = pattern.toCharArray();\\n157 :         int fmtCount = 0;\\n158 :         while (pos.getIndex() < pattern.length()) {\\n159 :             switch (c[pos.getIndex()]) {\\n160 :             case QUOTE:\\n161 :                 appendQuotedString(pattern, pos, stripCustom, true);\\n162 :                 break;\\n163 :             case START_FE:\\n164 :                 fmtCount++;\\n165 :                 seekNonWs(pattern, pos);\\n166 :                 int start = pos.getIndex();\\n167 :                 int index = readArgumentIndex(pattern, next(pos));\\n168 :                 stripCustom.append(START_FE).append(index);\\n169 :                 seekNonWs(pattern, pos);\\n170 :                 Format format = null;\\n171 :                 String formatDescription = null;\\n172 :                 if (c[pos.getIndex()] == START_FMT) {\\n173 :                     formatDescription = parseFormatDescription(pattern,\\n174 :                             next(pos));\\n175 :                     format = getFormat(formatDescription);\\n176 :                     if (format == null) {\\n177 :                         stripCustom.append(START_FMT).append(formatDescription);\\n178 :                     }\\n179 :                 }\\n180 :                 foundFormats.add(format);\\n181 :                 foundDescriptions.add(format == null ? null : formatDescription);\\n182 :                 Validate.isTrue(foundFormats.size() == fmtCount);\\n183 :                 Validate.isTrue(foundDescriptions.size() == fmtCount);\\n184 :                 if (c[pos.getIndex()] != END_FE) {\\n185 :                     throw new IllegalArgumentException(\\n186 :                             \\\"Unreadable format element at position \\\" + start);\\n187 :                 }\\n188 :                 //$FALL-THROUGH$\\n189 :             default:\\n190 :                 stripCustom.append(c[pos.getIndex()]);\\n191 :                 next(pos);\\n192 :             }\\n193 :         }\\n194 :         super.applyPattern(stripCustom.toString());\\n195 :         toPattern = insertFormats(super.toPattern(), foundDescriptions);\\n196 :         if (containsElements(foundFormats)) {\\n197 :             Format[] origFormats = getFormats();\\n198 :             // only loop over what we know we have, as MessageFormat on Java 1.3 \\n199 :             // seems to provide an extra format element:\\n200 :             int i = 0;\\n201 :             for (Iterator<Format> it = foundFormats.iterator(); it.hasNext(); i++) {\\n202 :                 Format f = it.next();\\n203 :                 if (f != null) {\\n204 :                     origFormats[i] = f;\\n205 :                 }\\n206 :             }\\n207 :             super.setFormats(origFormats);\\n208 :         }\\n209 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": "The test `testEqualsHashcode` checks whether the `ExtendedMessageFormat` class correctly generates a hash code based on its internal state. However, the test failure indicates that this is not the case.\n\nFollowing the execution path, we find that the bug lies in the `applyPattern` method of the `ExtendedMessageFormat` class. The method does not correctly set the internal state of the format when applying a new pattern. This causes the hash code generated by the format to be incorrect, resulting in the test failure.\n\nThe issue is likely due to the fact that the `toPattern` field is not updated correctly after calling `super.applyPattern(stripCustom.toString())`. The `toPattern` field should reflect the current state of the format, including any newly applied patterns. However, the code does not update this field correctly, leading to an incorrect hash code being generated.\n\nTo fix the issue, we need to ensure that the `toPattern` field is updated correctly after applying a new pattern. This can be done by calling `super.applyPattern(stripCustom.toString())` and then updating the `toPattern` field with the resulting string."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "ExtendedMessageFormat.applyPattern(String)\nExtendedMessageFormat.toPattern()\nExtendedMessageFormat.super.applyPattern(String)"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m9"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.apache.commons.lang3.text.ExtendedMessageFormatTest.testEqualsHashcode()']` failed.\nThe test looks like:\n\n```java\n270 :     public void testEqualsHashcode() {\n271 :         Map<String, ? extends FormatFactory> registry = Collections.singletonMap(\"testfmt\", new LowerCaseFormatFactory());\n272 :         Map<String, ? extends FormatFactory> otherRegitry = Collections.singletonMap(\"testfmt\", new UpperCaseFormatFactory());\n273 : \n274 :         String pattern = \"Pattern: {0,testfmt}\";\n275 :         ExtendedMessageFormat emf = new ExtendedMessageFormat(pattern, Locale.US, registry);\n276 : \n277 :         ExtendedMessageFormat other = null;\n278 : \n279 :         // Same object\n282 : \n283 :         // Equal Object\n284 :         other = new ExtendedMessageFormat(pattern, Locale.US, registry);\n287 : \n288 :         // Different Class\n289 :         other = new OtherExtendedMessageFormat(pattern, Locale.US, registry);\n292 :         \n293 :         // Different pattern\n294 :         other = new ExtendedMessageFormat(\"X\" + pattern, Locale.US, registry);\n297 : \n298 :         // Different registry\n299 :         other = new ExtendedMessageFormat(pattern, Locale.US, otherRegitry);\n301 :         assertFalse(\"registry, hashcode()\", emf.hashCode() == other.hashCode()); // error occurred here\n307 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: registry, hashcode()\n\tat org.apache.commons.lang3.text.ExtendedMessageFormatTest.testEqualsHashcode(ExtendedMessageFormatTest.java:301)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.apache.commons.lang3.text\": [\"ExtendedMessageFormat\", \"StrMatcher\"], \"org.apache.commons.lang3\": [\"Validate\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"org.apache.commons.lang3.text.ExtendedMessageFormat\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".applyPattern(java.lang.String)\", \".getFormat(java.lang.String)\", \".readArgumentIndex(java.lang.String, java.text.ParsePosition)\", \".parseFormatDescription(java.lang.String, java.text.ParsePosition)\", \".insertFormats(java.lang.String, java.util.ArrayList<java.lang.String>)\", \".seekNonWs(java.lang.String, java.text.ParsePosition)\", \".next(java.text.ParsePosition)\", \".containsElements(java.util.Collection<?>)\", \".ExtendedMessageFormat(java.lang.String, java.util.Locale, java.util.Map<java.lang.String, ? extends org.apache.commons.lang3.text.FormatFactory>)\"]"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang3.text.ExtendedMessageFormat.applyPattern\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang3.text.ExtendedMessageFormat.applyPattern(java.lang.String). It looks like:\\n```java\\n144 :     @Override\\n145 :     public final void applyPattern(String pattern) {\\n146 :         if (registry == null) {\\n147 :             super.applyPattern(pattern);\\n148 :             toPattern = super.toPattern();\\n149 :             return;\\n150 :         }\\n151 :         ArrayList<Format> foundFormats = new ArrayList<Format>();\\n152 :         ArrayList<String> foundDescriptions = new ArrayList<String>();\\n153 :         StringBuilder stripCustom = new StringBuilder(pattern.length());\\n154 : \\n155 :         ParsePosition pos = new ParsePosition(0);\\n156 :         char[] c = pattern.toCharArray();\\n157 :         int fmtCount = 0;\\n158 :         while (pos.getIndex() < pattern.length()) {\\n159 :             switch (c[pos.getIndex()]) {\\n160 :             case QUOTE:\\n161 :                 appendQuotedString(pattern, pos, stripCustom, true);\\n162 :                 break;\\n163 :             case START_FE:\\n164 :                 fmtCount++;\\n165 :                 seekNonWs(pattern, pos);\\n166 :                 int start = pos.getIndex();\\n167 :                 int index = readArgumentIndex(pattern, next(pos));\\n168 :                 stripCustom.append(START_FE).append(index);\\n169 :                 seekNonWs(pattern, pos);\\n170 :                 Format format = null;\\n171 :                 String formatDescription = null;\\n172 :                 if (c[pos.getIndex()] == START_FMT) {\\n173 :                     formatDescription = parseFormatDescription(pattern,\\n174 :                             next(pos));\\n175 :                     format = getFormat(formatDescription);\\n176 :                     if (format == null) {\\n177 :                         stripCustom.append(START_FMT).append(formatDescription);\\n178 :                     }\\n179 :                 }\\n180 :                 foundFormats.add(format);\\n181 :                 foundDescriptions.add(format == null ? null : formatDescription);\\n182 :                 Validate.isTrue(foundFormats.size() == fmtCount);\\n183 :                 Validate.isTrue(foundDescriptions.size() == fmtCount);\\n184 :                 if (c[pos.getIndex()] != END_FE) {\\n185 :                     throw new IllegalArgumentException(\\n186 :                             \\\"Unreadable format element at position \\\" + start);\\n187 :                 }\\n188 :                 //$FALL-THROUGH$\\n189 :             default:\\n190 :                 stripCustom.append(c[pos.getIndex()]);\\n191 :                 next(pos);\\n192 :             }\\n193 :         }\\n194 :         super.applyPattern(stripCustom.toString());\\n195 :         toPattern = insertFormats(super.toPattern(), foundDescriptions);\\n196 :         if (containsElements(foundFormats)) {\\n197 :             Format[] origFormats = getFormats();\\n198 :             // only loop over what we know we have, as MessageFormat on Java 1.3 \\n199 :             // seems to provide an extra format element:\\n200 :             int i = 0;\\n201 :             for (Iterator<Format> it = foundFormats.iterator(); it.hasNext(); i++) {\\n202 :                 Format f = it.next();\\n203 :                 if (f != null) {\\n204 :                     origFormats[i] = f;\\n205 :                 }\\n206 :             }\\n207 :             super.setFormats(origFormats);\\n208 :         }\\n209 :     }\\n```\""
+            },
+            "m9": {
+                "role": "assistant",
+                "content": "The test `testEqualsHashcode` checks whether the `ExtendedMessageFormat` class correctly generates a hash code based on its internal state. However, the test failure indicates that this is not the case.\n\nFollowing the execution path, we find that the bug lies in the `applyPattern` method of the `ExtendedMessageFormat` class. The method does not correctly set the internal state of the format when applying a new pattern. This causes the hash code generated by the format to be incorrect, resulting in the test failure.\n\nThe issue is likely due to the fact that the `toPattern` field is not updated correctly after calling `super.applyPattern(stripCustom.toString())`. The `toPattern` field should reflect the current state of the format, including any newly applied patterns. However, the code does not update this field correctly, leading to an incorrect hash code being generated.\n\nTo fix the issue, we need to ensure that the `toPattern` field is updated correctly after applying a new pattern. This can be done by calling `super.applyPattern(stripCustom.toString())` and then updating the `toPattern` field with the resulting string."
+            }
+        }
+    },
+    "buggy_methods": {},
+    "total_energy": [
+        0.0,
+        1599.5923000000007
+    ],
+    "power_draw": [
+        [
+            9.188,
+            241.776
+        ],
+        [
+            9.188,
+            258.588
+        ],
+        [
+            9.188,
+            253.588
+        ],
+        [
+            9.188,
+            253.519
+        ],
+        [
+            9.188,
+            253.514
+        ],
+        [
+            9.188,
+            253.592
+        ],
+        [
+            9.188,
+            253.538
+        ],
+        [
+            9.188,
+            253.529
+        ],
+        [
+            9.701,
+            267.802
+        ],
+        [
+            9.701,
+            281.589
+        ],
+        [
+            9.701,
+            296.518
+        ],
+        [
+            9.701,
+            294.667
+        ],
+        [
+            9.701,
+            297.147
+        ],
+        [
+            9.701,
+            298.692
+        ],
+        [
+            9.701,
+            298.898
+        ],
+        [
+            9.701,
+            301.22
+        ],
+        [
+            9.701,
+            309.606
+        ],
+        [
+            9.701,
+            309.512
+        ],
+        [
+            10.306,
+            295.188
+        ],
+        [
+            10.306,
+            299.094
+        ],
+        [
+            10.306,
+            298.982
+        ],
+        [
+            10.306,
+            297.455
+        ],
+        [
+            10.306,
+            296.152
+        ],
+        [
+            10.306,
+            296.463
+        ],
+        [
+            10.306,
+            297.64
+        ],
+        [
+            10.306,
+            298.459
+        ],
+        [
+            10.306,
+            305.505
+        ],
+        [
+            10.306,
+            320.962
+        ],
+        [
+            9.892,
+            335.438
+        ],
+        [
+            9.892,
+            333.636
+        ],
+        [
+            9.892,
+            334.005
+        ],
+        [
+            9.892,
+            334.475
+        ],
+        [
+            9.892,
+            334.656
+        ],
+        [
+            9.892,
+            334.199
+        ],
+        [
+            9.892,
+            334.159
+        ],
+        [
+            9.892,
+            333.496
+        ],
+        [
+            9.892,
+            333.501
+        ],
+        [
+            9.892,
+            333.325
+        ],
+        [
+            10.617,
+            333.831
+        ],
+        [
+            10.617,
+            333.619
+        ],
+        [
+            10.617,
+            333.474
+        ],
+        [
+            10.617,
+            333.699
+        ],
+        [
+            10.617,
+            334.162
+        ],
+        [
+            10.617,
+            334.734
+        ],
+        [
+            10.617,
+            333.36
+        ],
+        [
+            10.617,
+            333.557
+        ],
+        [
+            10.617,
+            333.957
+        ],
+        [
+            10.617,
+            333.671
+        ],
+        [
+            10.526,
+            323.589
+        ],
+        [
+            10.526,
+            308.622
+        ],
+        [
+            10.526,
+            296.769
+        ],
+        [
+            10.526,
+            301.135
+        ],
+        [
+            10.526,
+            301.635
+        ],
+        [
+            10.526,
+            300.076
+        ],
+        [
+            10.526,
+            298.438
+        ],
+        [
+            10.526,
+            298.156
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            86
+        ],
+        [
+            0,
+            86
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            29
+        ],
+        [
+            0,
+            29
+        ],
+        [
+            0,
+            37
+        ],
+        [
+            0,
+            37
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            55
+        ],
+        [
+            0,
+            55
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            95
+        ],
+        [
+            0,
+            95
+        ],
+        [
+            0,
+            81
+        ],
+        [
+            0,
+            81
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            47
+        ],
+        [
+            0,
+            47
+        ],
+        [
+            0,
+            8
+        ],
+        [
+            0,
+            8
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            81
+        ],
+        [
+            0,
+            81
+        ]
+    ]
+}

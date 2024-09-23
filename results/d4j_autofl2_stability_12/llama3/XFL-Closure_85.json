@@ -1,0 +1,472 @@
+{
+    "time_taken": 4.629215478897095,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['com.google.javascript.jscomp.UnreachableCodeEliminationTest.testIssue311()']` failed.\nThe test looks like:\n\n```java\n252 :   public void testIssue311() {\n253 :     test(\"function a(b) {\\n\" + // error occurred here\n254 :          \"  switch (b.v) {\\n\" +\n255 :          \"    case 'SWITCH':\\n\" +\n256 :          \"      if (b.i >= 0) {\\n\" +\n257 :          \"        return b.o;\\n\" +\n258 :          \"      } else {\\n\" +\n259 :          \"        return;\\n\" +\n260 :          \"      }\\n\" +\n261 :          \"      break;\\n\" +\n262 :          \"  }\\n\" +\n263 :          \"}\",\n264 :          \"function a(b) {\\n\" +\n265 :          \"  switch (b.v) {\\n\" +\n266 :          \"    case 'SWITCH':\\n\" +\n267 :          \"      if (b.i >= 0) {\\n\" +\n268 :          \"        return b.o;\\n\" +\n269 :          \"      } else {\\n\" +\n270 :          \"      }\\n\" +\n271 :          \"  }\\n\" +\n272 :          \"}\");\n273 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.RuntimeException: INTERNAL COMPILER ERROR.\nPlease report this problem.\nnull\n  Node(BREAK): testcode:9:6\n      break;\n\tat com.google.javascript.jscomp.NodeUtil.isTryFinallyNode(NodeUtil.java:1369)\n\tat com.google.javascript.jscomp.NodeUtil.removeChild(NodeUtil.java:1382)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.removeDeadExprStatementSafely(UnreachableCodeElimination.java:234)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.visit(UnreachableCodeElimination.java:105)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:464)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseFunction(NodeTraversal.java:502)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:449)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverse(NodeTraversal.java:249)\n\tat com.google.javascript.jscomp.NodeTraversal.traverse(NodeTraversal.java:422)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.process(UnreachableCodeElimination.java:87)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:736)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:398)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:323)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:292)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:280)\n\tat com.google.javascript.jscomp.UnreachableCodeEliminationTest.testIssue311(UnreachableCodeEliminationTest.java:253)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.jscomp\": [\"CodeConsumer\", \"Scope\", \"DiagnosticType\", \"SyntacticScopeCreator\", \"CompilerOptions\", \"ProcessTweaks\", \"JSModule\", \"DiagnosticGroup\", \"AnonymousFunctionNamingPolicy\", \"NodeTraversal\", \"RhinoErrorReporter\", \"NodeUtil\", \"AbstractMessageFormatter\", \"GoogleCodingConvention\", \"ComposeWarningsGuard\", \"PrepareAst\", \"JSSourceFile\", \"LoggerErrorManager\", \"LightweightMessageFormatter\", \"LineNumberCheck\", \"ErrorFormat\", \"CodePrinter\", \"Tracer\", \"DiagnosticGroups\", \"PassFactory\", \"CodeChangeHandler\", \"UnreachableCodeElimination\", \"ControlFlowGraph\", \"ControlFlowAnalysis\", \"SuppressDocWarningsGuard\", \"BasicErrorManager\", \"SourceFile\", \"CodeGenerator\", \"DiagnosticGroupWarningsGuard\", \"WarningsGuard\", \"Compiler\", \"JsAst\", \"CompilerInput\"], \"com.google.javascript.rhino\": [\"Node\", \"ScriptRuntime\", \"Context\"], \"com.google.javascript.rhino.jstype\": [\"FunctionBuilder\", \"NullType\", \"InstanceObjectType\", \"FunctionParamBuilder\", \"FunctionType\", \"PrototypeObjectType\", \"NumberType\", \"AllType\", \"FunctionPrototypeType\", \"NoType\", \"ValueType\", \"JSType\", \"ErrorFunctionType\", \"UnionTypeBuilder\", \"JSTypeRegistry\", \"ArrowType\", \"UnknownType\", \"NoObjectType\", \"VoidType\", \"ObjectType\", \"StringType\", \"UnionType\", \"BooleanType\"], \"com.google.javascript.jscomp.parsing\": [\"Config\", \"IRFactory\", \"ParserRunner\", \"TypeSafeDispatcher\"], \"com.google.javascript.jscomp.graph\": [\"LinkedDirectedGraph\", \"DiGraph\", \"Graph\", \"FixedPointGraphTraversal\", \"GraphReachability\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.jscomp\": [\"CodeConsumer\", \"Scope\", \"DiagnosticType\", \"SyntacticScopeCreator\", \"CompilerOptions\", \"ProcessTweaks\", \"JSModule\", \"DiagnosticGroup\", \"AnonymousFunctionNamingPolicy\", \"NodeTraversal\", \"RhinoErrorReporter\", \"NodeUtil\", \"AbstractMessageFormatter\", \"GoogleCodingConvention\", \"ComposeWarningsGuard\", \"PrepareAst\", \"JSSourceFile\", \"LoggerErrorManager\", \"LightweightMessageFormatter\", \"LineNumberCheck\", \"ErrorFormat\", \"CodePrinter\", \"Tracer\", \"DiagnosticGroups\", \"PassFactory\", \"CodeChangeHandler\", \"UnreachableCodeElimination\", \"ControlFlowGraph\", \"ControlFlowAnalysis\", \"SuppressDocWarningsGuard\", \"BasicErrorManager\", \"SourceFile\", \"CodeGenerator\", \"DiagnosticGroupWarningsGuard\", \"WarningsGuard\", \"Compiler\", \"JsAst\", \"CompilerInput\"], \"com.google.javascript.rhino\": [\"Node\", \"ScriptRuntime\", \"Context\"], \"com.google.javascript.rhino.jstype\": [\"FunctionBuilder\", \"NullType\", \"InstanceObjectType\", \"FunctionParamBuilder\", \"FunctionType\", \"PrototypeObjectType\", \"NumberType\", \"AllType\", \"FunctionPrototypeType\", \"NoType\", \"ValueType\", \"JSType\", \"ErrorFunctionType\", \"UnionTypeBuilder\", \"JSTypeRegistry\", \"ArrowType\", \"UnknownType\", \"NoObjectType\", \"VoidType\", \"ObjectType\", \"StringType\", \"UnionType\", \"BooleanType\"], \"com.google.javascript.jscomp.parsing\": [\"Config\", \"IRFactory\", \"ParserRunner\", \"TypeSafeDispatcher\"], \"com.google.javascript.jscomp.graph\": [\"LinkedDirectedGraph\", \"DiGraph\", \"Graph\", \"FixedPointGraphTraversal\", \"GraphReachability\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": "The function `get_failing_tests_covered_classes` has been called. The output indicates that the failing test is related to a class in the package `com.google.javascript.jscomp`. Specifically, it mentions the following classes:\n\n1. `UnreachableCodeElimination`\n2. `NodeTraversal`\n\nThese classes are part of the Google JavaScript Compiler (JSCompiler) project.\n\nThe function has also provided an overview of the covered classes across various packages, including `com.google.javascript.jscomp`, `com.google.javascript.rhino`, `com.google.javascript.rhino.jstype`, `com.google.javascript.jscomp.parsing`, and `com.google.javascript.jscomp.graph`.\n\nThis information can be useful in debugging the failing test."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "Here are the most likely culprit methods:\n\n* com.google.javascript.jscomp.UnreachableCodeElimination.visit(Node)\n* com.google.javascript.jscomp.NodeTraversal.traverse(Node)"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m3"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['com.google.javascript.jscomp.UnreachableCodeEliminationTest.testIssue311()']` failed.\nThe test looks like:\n\n```java\n252 :   public void testIssue311() {\n253 :     test(\"function a(b) {\\n\" + // error occurred here\n254 :          \"  switch (b.v) {\\n\" +\n255 :          \"    case 'SWITCH':\\n\" +\n256 :          \"      if (b.i >= 0) {\\n\" +\n257 :          \"        return b.o;\\n\" +\n258 :          \"      } else {\\n\" +\n259 :          \"        return;\\n\" +\n260 :          \"      }\\n\" +\n261 :          \"      break;\\n\" +\n262 :          \"  }\\n\" +\n263 :          \"}\",\n264 :          \"function a(b) {\\n\" +\n265 :          \"  switch (b.v) {\\n\" +\n266 :          \"    case 'SWITCH':\\n\" +\n267 :          \"      if (b.i >= 0) {\\n\" +\n268 :          \"        return b.o;\\n\" +\n269 :          \"      } else {\\n\" +\n270 :          \"      }\\n\" +\n271 :          \"  }\\n\" +\n272 :          \"}\");\n273 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.RuntimeException: INTERNAL COMPILER ERROR.\nPlease report this problem.\nnull\n  Node(BREAK): testcode:9:6\n      break;\n\tat com.google.javascript.jscomp.NodeUtil.isTryFinallyNode(NodeUtil.java:1369)\n\tat com.google.javascript.jscomp.NodeUtil.removeChild(NodeUtil.java:1382)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.removeDeadExprStatementSafely(UnreachableCodeElimination.java:234)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.visit(UnreachableCodeElimination.java:105)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:464)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseFunction(NodeTraversal.java:502)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:449)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverseBranch(NodeTraversal.java:457)\n\tat com.google.javascript.jscomp.NodeTraversal.traverse(NodeTraversal.java:249)\n\tat com.google.javascript.jscomp.NodeTraversal.traverse(NodeTraversal.java:422)\n\tat com.google.javascript.jscomp.UnreachableCodeElimination.process(UnreachableCodeElimination.java:87)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:736)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:398)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:323)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:292)\n\tat com.google.javascript.jscomp.CompilerTestCase.test(CompilerTestCase.java:280)\n\tat com.google.javascript.jscomp.UnreachableCodeEliminationTest.testIssue311(UnreachableCodeEliminationTest.java:253)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"com.google.javascript.jscomp\": [\"CodeConsumer\", \"Scope\", \"DiagnosticType\", \"SyntacticScopeCreator\", \"CompilerOptions\", \"ProcessTweaks\", \"JSModule\", \"DiagnosticGroup\", \"AnonymousFunctionNamingPolicy\", \"NodeTraversal\", \"RhinoErrorReporter\", \"NodeUtil\", \"AbstractMessageFormatter\", \"GoogleCodingConvention\", \"ComposeWarningsGuard\", \"PrepareAst\", \"JSSourceFile\", \"LoggerErrorManager\", \"LightweightMessageFormatter\", \"LineNumberCheck\", \"ErrorFormat\", \"CodePrinter\", \"Tracer\", \"DiagnosticGroups\", \"PassFactory\", \"CodeChangeHandler\", \"UnreachableCodeElimination\", \"ControlFlowGraph\", \"ControlFlowAnalysis\", \"SuppressDocWarningsGuard\", \"BasicErrorManager\", \"SourceFile\", \"CodeGenerator\", \"DiagnosticGroupWarningsGuard\", \"WarningsGuard\", \"Compiler\", \"JsAst\", \"CompilerInput\"], \"com.google.javascript.rhino\": [\"Node\", \"ScriptRuntime\", \"Context\"], \"com.google.javascript.rhino.jstype\": [\"FunctionBuilder\", \"NullType\", \"InstanceObjectType\", \"FunctionParamBuilder\", \"FunctionType\", \"PrototypeObjectType\", \"NumberType\", \"AllType\", \"FunctionPrototypeType\", \"NoType\", \"ValueType\", \"JSType\", \"ErrorFunctionType\", \"UnionTypeBuilder\", \"JSTypeRegistry\", \"ArrowType\", \"UnknownType\", \"NoObjectType\", \"VoidType\", \"ObjectType\", \"StringType\", \"UnionType\", \"BooleanType\"], \"com.google.javascript.jscomp.parsing\": [\"Config\", \"IRFactory\", \"ParserRunner\", \"TypeSafeDispatcher\"], \"com.google.javascript.jscomp.graph\": [\"LinkedDirectedGraph\", \"DiGraph\", \"Graph\", \"FixedPointGraphTraversal\", \"GraphReachability\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": "The function `get_failing_tests_covered_classes` has been called. The output indicates that the failing test is related to a class in the package `com.google.javascript.jscomp`. Specifically, it mentions the following classes:\n\n1. `UnreachableCodeElimination`\n2. `NodeTraversal`\n\nThese classes are part of the Google JavaScript Compiler (JSCompiler) project.\n\nThe function has also provided an overview of the covered classes across various packages, including `com.google.javascript.jscomp`, `com.google.javascript.rhino`, `com.google.javascript.rhino.jstype`, `com.google.javascript.jscomp.parsing`, and `com.google.javascript.jscomp.graph`.\n\nThis information can be useful in debugging the failing test."
+            }
+        }
+    },
+    "buggy_methods": {
+        "com.google.javascript.jscomp.UnreachableCodeElimination.tryRemoveUnconditionalBranching(com.google.javascript.rhino.Node)": {
+            "is_found": false,
+            "matching_answer": []
+        },
+        "com.google.javascript.jscomp.UnreachableCodeElimination.computeFollowing(com.google.javascript.rhino.Node)": {
+            "is_found": false,
+            "matching_answer": []
+        }
+    },
+    "total_energy": [
+        1262.9104999999997,
+        0.0
+    ],
+    "power_draw": [
+        [
+            247.782,
+            10.77
+        ],
+        [
+            242.355,
+            10.77
+        ],
+        [
+            244.505,
+            10.77
+        ],
+        [
+            246.636,
+            10.77
+        ],
+        [
+            248.251,
+            10.77
+        ],
+        [
+            246.634,
+            10.77
+        ],
+        [
+            261.561,
+            10.77
+        ],
+        [
+            278.02,
+            10.77
+        ],
+        [
+            294.491,
+            10.77
+        ],
+        [
+            311.009,
+            10.77
+        ],
+        [
+            326.936,
+            10.98
+        ],
+        [
+            333.285,
+            10.98
+        ],
+        [
+            319.208,
+            10.98
+        ],
+        [
+            301.526,
+            10.98
+        ],
+        [
+            286.613,
+            10.98
+        ],
+        [
+            293.36,
+            10.98
+        ],
+        [
+            293.376,
+            10.98
+        ],
+        [
+            291.623,
+            10.98
+        ],
+        [
+            290.904,
+            10.98
+        ],
+        [
+            290.761,
+            10.98
+        ],
+        [
+            290.966,
+            10.467
+        ],
+        [
+            289.226,
+            10.467
+        ],
+        [
+            300.286,
+            10.467
+        ],
+        [
+            314.634,
+            10.467
+        ],
+        [
+            326.213,
+            10.467
+        ],
+        [
+            319.887,
+            10.467
+        ],
+        [
+            318.062,
+            10.467
+        ],
+        [
+            318.198,
+            10.467
+        ],
+        [
+            317.634,
+            10.467
+        ],
+        [
+            316.25,
+            10.467
+        ],
+        [
+            314.845,
+            11.3
+        ],
+        [
+            315.353,
+            11.3
+        ],
+        [
+            315.685,
+            11.3
+        ],
+        [
+            315.972,
+            11.3
+        ],
+        [
+            309.443,
+            11.3
+        ],
+        [
+            294.63,
+            11.3
+        ],
+        [
+            279.828,
+            11.3
+        ],
+        [
+            280.781,
+            11.3
+        ],
+        [
+            280.709,
+            11.3
+        ],
+        [
+            281.906,
+            11.3
+        ],
+        [
+            279.632,
+            10.928
+        ],
+        [
+            280.853,
+            10.928
+        ],
+        [
+            282.889,
+            10.928
+        ],
+        [
+            284.169,
+            10.928
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            20,
+            0
+        ],
+        [
+            20,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            8,
+            0
+        ],
+        [
+            8,
+            0
+        ],
+        [
+            57,
+            0
+        ],
+        [
+            57,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            94,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            19,
+            0
+        ],
+        [
+            19,
+            0
+        ],
+        [
+            39,
+            0
+        ],
+        [
+            39,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            73,
+            0
+        ]
+    ]
+}

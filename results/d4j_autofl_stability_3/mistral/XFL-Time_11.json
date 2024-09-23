@@ -1,0 +1,676 @@
+{
+    "time_taken": 7.2815845012664795,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.joda.time.tz.TestCompiler.testDateTimeZoneBuilder()']` failed.\nThe test looks like:\n\n```java\n 88 :     public void testDateTimeZoneBuilder() throws Exception {\n 89 :         // test multithreading, issue #18\n 90 :         getTestDataTimeZoneBuilder().toDateTimeZone(\"TestDTZ1\", true);\n 91 :         final DateTimeZone[] zone = new DateTimeZone[1];\n 92 :         Thread t = new Thread(new Runnable() {\n 93 :             public void run() {\n 94 :                 zone[0] = getTestDataTimeZoneBuilder().toDateTimeZone(\"TestDTZ2\", true);\n 95 :             }\n 96 :         });\n 97 :         t.start();\n 98 :         t.join();\n 99 :         assertNotNull(zone[0]); // error occurred here\n100 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError\n\tat org.joda.time.tz.TestCompiler.testDateTimeZoneBuilder(TestCompiler.java:99)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.joda.time.chrono\": [\"AssembledChronology\", \"BasicYearDateTimeField\", \"GJYearOfEraDateTimeField\", \"GJDayOfWeekDateTimeField\", \"GJEraDateTimeField\", \"GJMonthOfYearDateTimeField\", \"GregorianChronology\", \"BasicWeekOfWeekyearDateTimeField\", \"BasicChronology\", \"BasicGJChronology\", \"BasicMonthOfYearDateTimeField\", \"ISOYearOfEraDateTimeField\", \"ISOChronology\", \"BasicWeekyearDateTimeField\", \"BasicDayOfYearDateTimeField\", \"BaseChronology\", \"BasicDayOfMonthDateTimeField\"], \"org.joda.time.tz\": [\"ZoneInfoCompiler\", \"FixedDateTimeZone\", \"ZoneInfoProvider\", \"DateTimeZoneBuilder\", \"DefaultNameProvider\", \"CachedDateTimeZone\"], \"org.joda.time.field\": [\"ScaledDurationField\", \"DecoratedDurationField\", \"ImpreciseDateTimeField\", \"UnsupportedDurationField\", \"PreciseDurationDateTimeField\", \"ZeroIsMaxDateTimeField\", \"DividedDateTimeField\", \"OffsetDateTimeField\", \"DecoratedDateTimeField\", \"BaseDateTimeField\", \"PreciseDateTimeField\", \"MillisDurationField\", \"FieldUtils\", \"RemainderDateTimeField\", \"PreciseDurationField\", \"BaseDurationField\"], \"org.joda.time\": [\"PeriodType\", \"DateTimeZone\", \"Period\", \"DateTimeFieldType\", \"DateTimeUtils\", \"DurationFieldType\"], \"org.joda.time.base\": [\"BasePeriod\", \"AbstractPeriod\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.joda.time.tz.DateTimeZoneBuilder.toDateTimeZone\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.joda.time.tz.DateTimeZoneBuilder.toDateTimeZone(java.lang.String, boolean). It looks like:\\n```java\\n332 :     public DateTimeZone toDateTimeZone(String id, boolean outputID) {\\n333 :         if (id == null) {\\n334 :             throw new IllegalArgumentException();\\n335 :         }\\n336 : \\n337 :         // Discover where all the transitions occur and store the results in\\n338 :         // these lists.\\n339 :         ArrayList<Transition> transitions = new ArrayList<Transition>();\\n340 : \\n341 :         // Tail zone picks up remaining transitions in the form of an endless\\n342 :         // DST cycle.\\n343 :         DSTZone tailZone = null;\\n344 : \\n345 :         long millis = Long.MIN_VALUE;\\n346 :         int saveMillis = 0;\\n347 :             \\n348 :         int ruleSetCount = iRuleSets.size();\\n349 :         for (int i=0; i<ruleSetCount; i++) {\\n350 :             RuleSet rs = iRuleSets.get(i);\\n351 :             Transition next = rs.firstTransition(millis);\\n352 :             if (next == null) {\\n353 :                 continue;\\n354 :             }\\n355 :             addTransition(transitions, next);\\n356 :             millis = next.getMillis();\\n357 :             saveMillis = next.getSaveMillis();\\n358 : \\n359 :             // Copy it since we're going to destroy it.\\n360 :             rs = new RuleSet(rs);\\n361 : \\n362 :             while ((next = rs.nextTransition(millis, saveMillis)) != null) {\\n363 :                 if (addTransition(transitions, next)) {\\n364 :                     if (tailZone != null) {\\n365 :                         // Got the extra transition before DSTZone.\\n366 :                         break;\\n367 :                     }\\n368 :                 }\\n369 :                 millis = next.getMillis();\\n370 :                 saveMillis = next.getSaveMillis();\\n371 :                 if (tailZone == null && i == ruleSetCount - 1) {\\n372 :                     tailZone = rs.buildTailZone(id);\\n373 :                     // If tailZone is not null, don't break out of main loop until\\n374 :                     // at least one more transition is calculated. This ensures a\\n375 :                     // correct 'seam' to the DSTZone.\\n376 :                 }\\n377 :             }\\n378 : \\n379 :             millis = rs.getUpperLimit(saveMillis);\\n380 :         }\\n381 : \\n382 :         // Check if a simpler zone implementation can be returned.\\n383 :         if (transitions.size() == 0) {\\n384 :             if (tailZone != null) {\\n385 :                 // This shouldn't happen, but handle just in case.\\n386 :                 return tailZone;\\n387 :             }\\n388 :             return buildFixedZone(id, \\\"UTC\\\", 0, 0);\\n389 :         }\\n390 :         if (transitions.size() == 1 && tailZone == null) {\\n391 :             Transition tr = transitions.get(0);\\n392 :             return buildFixedZone(id, tr.getNameKey(),\\n393 :                                   tr.getWallOffset(), tr.getStandardOffset());\\n394 :         }\\n395 : \\n396 :         PrecalculatedZone zone = PrecalculatedZone.create(id, outputID, transitions, tailZone);\\n397 :         if (zone.isCachable()) {\\n398 :             return CachedDateTimeZone.forZone(zone);\\n399 :         }\\n400 :         return zone;\\n401 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": " This Java code defines a method `toDateTimeZone()` in the `tz.DateTimeZoneBuilder` class that takes a string ID representing a timezone and an optional boolean parameter `outputID`. The method returns a `DateTimeZone` object, which represents a specific point in time relative to a calendar or clock, typically as the difference between the local time and UTC (Coordinated Universal Time).\n\nThe method first checks if the input ID is null. If it is, an exception is thrown because a timezone ID cannot be null. The code then iterates through all the rule sets associated with the given timezone ID. For each rule set, it retrieves the next transition and adds it to a list of transitions. It also calculates the UTC milliseconds (millis) and save milliseconds for the next transition.\n\nIf the next transition is null, the method continues to the next rule set. Otherwise, it adds the transition to the list of transitions, checks if there is a tail zone (a zone that picks up remaining transitions in the form of an endless DST cycle), updates the UTC milliseconds and save milliseconds accordingly, and repeats this process until all the transitions for the current rule set have been processed.\n\nIf there are no transitions or if there is only one transition with no tail zone, the method returns a fixed zone or a precalculated zone based on the transition information, respectively. Otherwise, it creates a `PrecalculatedZone` object and checks if it's cachable. If it is, it returns a `CachedDateTimeZone` object; otherwise, it simply returns the `PrecalculatedZone` object.\n\nIn summary, this code defines a method for creating a `DateTimeZone` object from a given timezone ID, taking into account any Daylight Saving Time (DST) rules and transitions associated with the specified timezone."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "1. DateTimeZoneBuilder.toDateTimeZone(String, boolean)\n   2. RuleSet.getNextTransition()\n   3. RuleSet.buildTailZone(String)\n   4. PrecalculatedZone.create(String, String, List<Transition>, ZoneId)\n   5. CachedDateTimeZone.forZone(PrecalculatedZone)\n   6. PrecalculatedZone.isCachable()"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.joda.time.tz.TestCompiler.testDateTimeZoneBuilder()']` failed.\nThe test looks like:\n\n```java\n 88 :     public void testDateTimeZoneBuilder() throws Exception {\n 89 :         // test multithreading, issue #18\n 90 :         getTestDataTimeZoneBuilder().toDateTimeZone(\"TestDTZ1\", true);\n 91 :         final DateTimeZone[] zone = new DateTimeZone[1];\n 92 :         Thread t = new Thread(new Runnable() {\n 93 :             public void run() {\n 94 :                 zone[0] = getTestDataTimeZoneBuilder().toDateTimeZone(\"TestDTZ2\", true);\n 95 :             }\n 96 :         });\n 97 :         t.start();\n 98 :         t.join();\n 99 :         assertNotNull(zone[0]); // error occurred here\n100 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError\n\tat org.joda.time.tz.TestCompiler.testDateTimeZoneBuilder(TestCompiler.java:99)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.joda.time.chrono\": [\"AssembledChronology\", \"BasicYearDateTimeField\", \"GJYearOfEraDateTimeField\", \"GJDayOfWeekDateTimeField\", \"GJEraDateTimeField\", \"GJMonthOfYearDateTimeField\", \"GregorianChronology\", \"BasicWeekOfWeekyearDateTimeField\", \"BasicChronology\", \"BasicGJChronology\", \"BasicMonthOfYearDateTimeField\", \"ISOYearOfEraDateTimeField\", \"ISOChronology\", \"BasicWeekyearDateTimeField\", \"BasicDayOfYearDateTimeField\", \"BaseChronology\", \"BasicDayOfMonthDateTimeField\"], \"org.joda.time.tz\": [\"ZoneInfoCompiler\", \"FixedDateTimeZone\", \"ZoneInfoProvider\", \"DateTimeZoneBuilder\", \"DefaultNameProvider\", \"CachedDateTimeZone\"], \"org.joda.time.field\": [\"ScaledDurationField\", \"DecoratedDurationField\", \"ImpreciseDateTimeField\", \"UnsupportedDurationField\", \"PreciseDurationDateTimeField\", \"ZeroIsMaxDateTimeField\", \"DividedDateTimeField\", \"OffsetDateTimeField\", \"DecoratedDateTimeField\", \"BaseDateTimeField\", \"PreciseDateTimeField\", \"MillisDurationField\", \"FieldUtils\", \"RemainderDateTimeField\", \"PreciseDurationField\", \"BaseDurationField\"], \"org.joda.time\": [\"PeriodType\", \"DateTimeZone\", \"Period\", \"DateTimeFieldType\", \"DateTimeUtils\", \"DurationFieldType\"], \"org.joda.time.base\": [\"BasePeriod\", \"AbstractPeriod\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.joda.time.tz.DateTimeZoneBuilder.toDateTimeZone\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.joda.time.tz.DateTimeZoneBuilder.toDateTimeZone(java.lang.String, boolean). It looks like:\\n```java\\n332 :     public DateTimeZone toDateTimeZone(String id, boolean outputID) {\\n333 :         if (id == null) {\\n334 :             throw new IllegalArgumentException();\\n335 :         }\\n336 : \\n337 :         // Discover where all the transitions occur and store the results in\\n338 :         // these lists.\\n339 :         ArrayList<Transition> transitions = new ArrayList<Transition>();\\n340 : \\n341 :         // Tail zone picks up remaining transitions in the form of an endless\\n342 :         // DST cycle.\\n343 :         DSTZone tailZone = null;\\n344 : \\n345 :         long millis = Long.MIN_VALUE;\\n346 :         int saveMillis = 0;\\n347 :             \\n348 :         int ruleSetCount = iRuleSets.size();\\n349 :         for (int i=0; i<ruleSetCount; i++) {\\n350 :             RuleSet rs = iRuleSets.get(i);\\n351 :             Transition next = rs.firstTransition(millis);\\n352 :             if (next == null) {\\n353 :                 continue;\\n354 :             }\\n355 :             addTransition(transitions, next);\\n356 :             millis = next.getMillis();\\n357 :             saveMillis = next.getSaveMillis();\\n358 : \\n359 :             // Copy it since we're going to destroy it.\\n360 :             rs = new RuleSet(rs);\\n361 : \\n362 :             while ((next = rs.nextTransition(millis, saveMillis)) != null) {\\n363 :                 if (addTransition(transitions, next)) {\\n364 :                     if (tailZone != null) {\\n365 :                         // Got the extra transition before DSTZone.\\n366 :                         break;\\n367 :                     }\\n368 :                 }\\n369 :                 millis = next.getMillis();\\n370 :                 saveMillis = next.getSaveMillis();\\n371 :                 if (tailZone == null && i == ruleSetCount - 1) {\\n372 :                     tailZone = rs.buildTailZone(id);\\n373 :                     // If tailZone is not null, don't break out of main loop until\\n374 :                     // at least one more transition is calculated. This ensures a\\n375 :                     // correct 'seam' to the DSTZone.\\n376 :                 }\\n377 :             }\\n378 : \\n379 :             millis = rs.getUpperLimit(saveMillis);\\n380 :         }\\n381 : \\n382 :         // Check if a simpler zone implementation can be returned.\\n383 :         if (transitions.size() == 0) {\\n384 :             if (tailZone != null) {\\n385 :                 // This shouldn't happen, but handle just in case.\\n386 :                 return tailZone;\\n387 :             }\\n388 :             return buildFixedZone(id, \\\"UTC\\\", 0, 0);\\n389 :         }\\n390 :         if (transitions.size() == 1 && tailZone == null) {\\n391 :             Transition tr = transitions.get(0);\\n392 :             return buildFixedZone(id, tr.getNameKey(),\\n393 :                                   tr.getWallOffset(), tr.getStandardOffset());\\n394 :         }\\n395 : \\n396 :         PrecalculatedZone zone = PrecalculatedZone.create(id, outputID, transitions, tailZone);\\n397 :         if (zone.isCachable()) {\\n398 :             return CachedDateTimeZone.forZone(zone);\\n399 :         }\\n400 :         return zone;\\n401 :     }\\n```\""
+            },
+            "m7": {
+                "role": "assistant",
+                "content": " This Java code defines a method `toDateTimeZone()` in the `tz.DateTimeZoneBuilder` class that takes a string ID representing a timezone and an optional boolean parameter `outputID`. The method returns a `DateTimeZone` object, which represents a specific point in time relative to a calendar or clock, typically as the difference between the local time and UTC (Coordinated Universal Time).\n\nThe method first checks if the input ID is null. If it is, an exception is thrown because a timezone ID cannot be null. The code then iterates through all the rule sets associated with the given timezone ID. For each rule set, it retrieves the next transition and adds it to a list of transitions. It also calculates the UTC milliseconds (millis) and save milliseconds for the next transition.\n\nIf the next transition is null, the method continues to the next rule set. Otherwise, it adds the transition to the list of transitions, checks if there is a tail zone (a zone that picks up remaining transitions in the form of an endless DST cycle), updates the UTC milliseconds and save milliseconds accordingly, and repeats this process until all the transitions for the current rule set have been processed.\n\nIf there are no transitions or if there is only one transition with no tail zone, the method returns a fixed zone or a precalculated zone based on the transition information, respectively. Otherwise, it creates a `PrecalculatedZone` object and checks if it's cachable. If it is, it returns a `CachedDateTimeZone` object; otherwise, it simply returns the `PrecalculatedZone` object.\n\nIn summary, this code defines a method for creating a `DateTimeZone` object from a given timezone ID, taking into account any Daylight Saving Time (DST) rules and transitions associated with the specified timezone."
+            }
+        }
+    },
+    "buggy_methods": {},
+    "total_energy": [
+        1969.9073999999994,
+        0.0
+    ],
+    "power_draw": [
+        [
+            229.929,
+            11.105
+        ],
+        [
+            236.108,
+            11.105
+        ],
+        [
+            237.003,
+            11.105
+        ],
+        [
+            237.385,
+            11.105
+        ],
+        [
+            240.405,
+            10.286
+        ],
+        [
+            249.6,
+            10.286
+        ],
+        [
+            266.08,
+            10.286
+        ],
+        [
+            282.237,
+            10.286
+        ],
+        [
+            297.91,
+            10.286
+        ],
+        [
+            313.112,
+            10.286
+        ],
+        [
+            327.182,
+            10.286
+        ],
+        [
+            323.621,
+            10.286
+        ],
+        [
+            322.78,
+            10.286
+        ],
+        [
+            308.655,
+            10.286
+        ],
+        [
+            292.267,
+            11.56
+        ],
+        [
+            289.046,
+            11.56
+        ],
+        [
+            285.831,
+            11.56
+        ],
+        [
+            284.011,
+            11.56
+        ],
+        [
+            280.264,
+            11.56
+        ],
+        [
+            278.645,
+            11.56
+        ],
+        [
+            276.957,
+            11.56
+        ],
+        [
+            275.407,
+            11.56
+        ],
+        [
+            276.42,
+            11.56
+        ],
+        [
+            290.708,
+            11.238
+        ],
+        [
+            304.266,
+            11.238
+        ],
+        [
+            304.199,
+            11.238
+        ],
+        [
+            304.038,
+            11.238
+        ],
+        [
+            303.286,
+            11.238
+        ],
+        [
+            304.592,
+            11.238
+        ],
+        [
+            304.117,
+            11.238
+        ],
+        [
+            303.669,
+            11.238
+        ],
+        [
+            303.381,
+            11.238
+        ],
+        [
+            302.459,
+            11.238
+        ],
+        [
+            301.581,
+            11.213
+        ],
+        [
+            301.209,
+            11.213
+        ],
+        [
+            300.717,
+            11.213
+        ],
+        [
+            300.986,
+            11.213
+        ],
+        [
+            300.545,
+            11.213
+        ],
+        [
+            300.408,
+            11.213
+        ],
+        [
+            300.421,
+            11.213
+        ],
+        [
+            300.563,
+            11.213
+        ],
+        [
+            300.573,
+            11.213
+        ],
+        [
+            300.525,
+            11.213
+        ],
+        [
+            300.681,
+            11.589
+        ],
+        [
+            300.482,
+            11.589
+        ],
+        [
+            300.741,
+            11.589
+        ],
+        [
+            300.749,
+            11.589
+        ],
+        [
+            300.702,
+            11.589
+        ],
+        [
+            300.782,
+            11.589
+        ],
+        [
+            300.926,
+            11.589
+        ],
+        [
+            300.406,
+            11.589
+        ],
+        [
+            299.497,
+            11.589
+        ],
+        [
+            298.871,
+            11.589
+        ],
+        [
+            298.014,
+            11.541
+        ],
+        [
+            297.008,
+            11.541
+        ],
+        [
+            287.95,
+            11.541
+        ],
+        [
+            274.666,
+            11.541
+        ],
+        [
+            267.84,
+            11.541
+        ],
+        [
+            268.168,
+            11.541
+        ],
+        [
+            267.524,
+            11.541
+        ],
+        [
+            266.475,
+            11.541
+        ],
+        [
+            266.815,
+            11.541
+        ],
+        [
+            267.655,
+            11.541
+        ],
+        [
+            269.25,
+            11.03
+        ],
+        [
+            270.961,
+            11.03
+        ],
+        [
+            280.651,
+            11.03
+        ],
+        [
+            294.763,
+            11.03
+        ],
+        [
+            302.28,
+            11.03
+        ],
+        [
+            302.048,
+            11.03
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            54,
+            0
+        ],
+        [
+            54,
+            0
+        ],
+        [
+            93,
+            0
+        ],
+        [
+            93,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            38,
+            0
+        ],
+        [
+            38,
+            0
+        ],
+        [
+            34,
+            0
+        ],
+        [
+            34,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            85,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            61,
+            0
+        ],
+        [
+            13,
+            0
+        ],
+        [
+            13,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            90,
+            0
+        ],
+        [
+            90,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            86,
+            0
+        ],
+        [
+            87,
+            0
+        ],
+        [
+            87,
+            0
+        ]
+    ]
+}

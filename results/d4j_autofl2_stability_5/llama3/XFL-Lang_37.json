@@ -1,0 +1,1223 @@
+{
+    "time_taken": 12.754013776779175,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.apache.commons.lang3.ArrayUtilsAddTest.testJira567()']` failed.\nThe test looks like:\n\n```java\n32 :     public void testJira567(){\n33 :         Number[] n;\n34 :         // Valid array construction\n35 :         n = ArrayUtils.addAll(new Number[]{Integer.valueOf(1)}, new Long[]{Long.valueOf(2)});\n38 :         try {\n39 :             // Invalid - can't store Long in Integer array\n40 :                n = ArrayUtils.addAll(new Integer[]{Integer.valueOf(1)}, new Long[]{Long.valueOf(2)}); // error occurred here\n41 :                fail(\"Should have generated IllegalArgumentException\");\n42 :         } catch (IllegalArgumentException expected) {\n43 :         }\n44 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.ArrayStoreException\n\tat java.lang.System.arraycopy(Native Method)\n\tat org.apache.commons.lang3.ArrayUtils.addAll(ArrayUtils.java:2962)\n\tat org.apache.commons.lang3.ArrayUtilsAddTest.testJira567(ArrayUtilsAddTest.java:40)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang3\": [\"ArrayUtils\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"ArrayUtils\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "{\"error_message\": \"You can obtain test-related information via the `get_code_snippet()` function.\"}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang3.ArrayUtils.addAll\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang3.ArrayUtils.addAll(T[], T...). It looks like:\\n```java\\n2952 :     @SuppressWarnings(\\\"unchecked\\\")\\n2953 :     public static <T> T[] addAll(T[] array1, T... array2) {\\n2954 :         if (array1 == null) {\\n2955 :             return clone(array2);\\n2956 :         } else if (array2 == null) {\\n2957 :             return clone(array1);\\n2958 :         }\\n2959 :         final Class<?> type1 = array1.getClass().getComponentType();\\n2960 :         T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\\n2961 :         System.arraycopy(array1, 0, joinedArray, 0, array1.length);\\n2962 :             System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\\n2963 :             // Check if problem is incompatible types\\n2964 :         return joinedArray;\\n2965 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_comments",
+                "arguments": "{\"signature\": \"org.apache.commons.lang3.ArrayUtils.addAll\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_comments",
+            "content": "\"You probably mean org.apache.commons.lang3.ArrayUtils.addAll(T[], T...). It looks like:\\n```java\\n\\n     * <p>Adds all the elements of the given arrays into a new array.</p>\\n     * <p>The new array contains all of the element of <code>array1</code> followed\\n     * by all of the elements <code>array2</code>. When an array is returned, it is always\\n     * a new array.</p>\\n     *\\n     * <pre>\\n     * ArrayUtils.addAll(null, null)     = null\\n     * ArrayUtils.addAll(array1, null)   = cloned copy of array1\\n     * ArrayUtils.addAll(null, array2)   = cloned copy of array2\\n     * ArrayUtils.addAll([], [])         = []\\n     * ArrayUtils.addAll([null], [null]) = [null, null]\\n     * ArrayUtils.addAll([\\\"a\\\", \\\"b\\\", \\\"c\\\"], [\\\"1\\\", \\\"2\\\", \\\"3\\\"]) = [\\\"a\\\", \\\"b\\\", \\\"c\\\", \\\"1\\\", \\\"2\\\", \\\"3\\\"]\\n     * </pre>\\n     *\\n     * @param array1  the first array whose elements are added to the new array, may be <code>null</code>\\n     * @param array2  the second array whose elements are added to the new array, may be <code>null</code>\\n     * @return The new array, <code>null</code> if both arrays are <code>null</code>.\\n     *      The type of the new array is the type of the first array,\\n     *      unless the first array is null, in which case the type is the same as the second array.\\n     * @since 2.1\\n     \\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang3\": [\"ArrayUtils\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": "The test `testJira567()` checks whether ArrayUtils.addAll() correctly handles the addition of arrays with incompatible types. However, the test failure indicates that this is not the case. Following the execution path, we find that ArrayUtils.addAll() does not correctly handle the addition of an integer array and a long array, resulting in an ArrayStoreException.\n\nThe method addAll(T[] array1, T... array2) takes two arrays as input: array1 and array2. It checks if either array is null and returns a cloned copy or an empty array accordingly. If both arrays are not null, it creates a new array with the total length of the two arrays and copies the elements from both arrays into the new array.\n\nThe issue arises when trying to add elements from an integer array and a long array together. The method does not handle this situation correctly, resulting in an ArrayStoreException.\n\nConclusion: The test `testJira567()` checks whether ArrayUtils.addAll() correctly handles the addition of arrays with incompatible types."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "org.apache.commons.lang3.ArrayUtils.addAll(Int[], Long[])"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m9"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10"
+                ],
+                "response_message": "m3"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m11"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.apache.commons.lang3.ArrayUtilsAddTest.testJira567()']` failed.\nThe test looks like:\n\n```java\n32 :     public void testJira567(){\n33 :         Number[] n;\n34 :         // Valid array construction\n35 :         n = ArrayUtils.addAll(new Number[]{Integer.valueOf(1)}, new Long[]{Long.valueOf(2)});\n38 :         try {\n39 :             // Invalid - can't store Long in Integer array\n40 :                n = ArrayUtils.addAll(new Integer[]{Integer.valueOf(1)}, new Long[]{Long.valueOf(2)}); // error occurred here\n41 :                fail(\"Should have generated IllegalArgumentException\");\n42 :         } catch (IllegalArgumentException expected) {\n43 :         }\n44 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.ArrayStoreException\n\tat java.lang.System.arraycopy(Native Method)\n\tat org.apache.commons.lang3.ArrayUtils.addAll(ArrayUtils.java:2962)\n\tat org.apache.commons.lang3.ArrayUtilsAddTest.testJira567(ArrayUtilsAddTest.java:40)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.apache.commons.lang3\": [\"ArrayUtils\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"ArrayUtils\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "{\"error_message\": \"You can obtain test-related information via the `get_code_snippet()` function.\"}"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang3.ArrayUtils.addAll\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang3.ArrayUtils.addAll(T[], T...). It looks like:\\n```java\\n2952 :     @SuppressWarnings(\\\"unchecked\\\")\\n2953 :     public static <T> T[] addAll(T[] array1, T... array2) {\\n2954 :         if (array1 == null) {\\n2955 :             return clone(array2);\\n2956 :         } else if (array2 == null) {\\n2957 :             return clone(array1);\\n2958 :         }\\n2959 :         final Class<?> type1 = array1.getClass().getComponentType();\\n2960 :         T[] joinedArray = (T[]) Array.newInstance(type1, array1.length + array2.length);\\n2961 :         System.arraycopy(array1, 0, joinedArray, 0, array1.length);\\n2962 :             System.arraycopy(array2, 0, joinedArray, array1.length, array2.length);\\n2963 :             // Check if problem is incompatible types\\n2964 :         return joinedArray;\\n2965 :     }\\n```\""
+            },
+            "m9": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_comments",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang3.ArrayUtils.addAll\"}"
+                }
+            },
+            "m10": {
+                "role": "function",
+                "name": "get_comments",
+                "content": "\"You probably mean org.apache.commons.lang3.ArrayUtils.addAll(T[], T...). It looks like:\\n```java\\n\\n     * <p>Adds all the elements of the given arrays into a new array.</p>\\n     * <p>The new array contains all of the element of <code>array1</code> followed\\n     * by all of the elements <code>array2</code>. When an array is returned, it is always\\n     * a new array.</p>\\n     *\\n     * <pre>\\n     * ArrayUtils.addAll(null, null)     = null\\n     * ArrayUtils.addAll(array1, null)   = cloned copy of array1\\n     * ArrayUtils.addAll(null, array2)   = cloned copy of array2\\n     * ArrayUtils.addAll([], [])         = []\\n     * ArrayUtils.addAll([null], [null]) = [null, null]\\n     * ArrayUtils.addAll([\\\"a\\\", \\\"b\\\", \\\"c\\\"], [\\\"1\\\", \\\"2\\\", \\\"3\\\"]) = [\\\"a\\\", \\\"b\\\", \\\"c\\\", \\\"1\\\", \\\"2\\\", \\\"3\\\"]\\n     * </pre>\\n     *\\n     * @param array1  the first array whose elements are added to the new array, may be <code>null</code>\\n     * @param array2  the second array whose elements are added to the new array, may be <code>null</code>\\n     * @return The new array, <code>null</code> if both arrays are <code>null</code>.\\n     *      The type of the new array is the type of the first array,\\n     *      unless the first array is null, in which case the type is the same as the second array.\\n     * @since 2.1\\n     \\n```\""
+            },
+            "m11": {
+                "role": "assistant",
+                "content": "The test `testJira567()` checks whether ArrayUtils.addAll() correctly handles the addition of arrays with incompatible types. However, the test failure indicates that this is not the case. Following the execution path, we find that ArrayUtils.addAll() does not correctly handle the addition of an integer array and a long array, resulting in an ArrayStoreException.\n\nThe method addAll(T[] array1, T... array2) takes two arrays as input: array1 and array2. It checks if either array is null and returns a cloned copy or an empty array accordingly. If both arrays are not null, it creates a new array with the total length of the two arrays and copies the elements from both arrays into the new array.\n\nThe issue arises when trying to add elements from an integer array and a long array together. The method does not handle this situation correctly, resulting in an ArrayStoreException.\n\nConclusion: The test `testJira567()` checks whether ArrayUtils.addAll() correctly handles the addition of arrays with incompatible types."
+            }
+        }
+    },
+    "buggy_methods": {
+        "org.apache.commons.lang3.ArrayUtils.addAll(T[], T...)": {
+            "is_found": false,
+            "matching_answer": []
+        }
+    },
+    "total_energy": [
+        0.0,
+        3747.3988
+    ],
+    "power_draw": [
+        [
+            9.925,
+            254.562
+        ],
+        [
+            9.925,
+            254.117
+        ],
+        [
+            9.925,
+            256.812
+        ],
+        [
+            9.925,
+            257.164
+        ],
+        [
+            9.925,
+            255.127
+        ],
+        [
+            9.925,
+            250.057
+        ],
+        [
+            9.342,
+            249.578
+        ],
+        [
+            9.342,
+            250.176
+        ],
+        [
+            9.342,
+            267.746
+        ],
+        [
+            9.342,
+            283.563
+        ],
+        [
+            9.342,
+            298.765
+        ],
+        [
+            9.342,
+            298.42
+        ],
+        [
+            9.342,
+            298.761
+        ],
+        [
+            9.342,
+            299.421
+        ],
+        [
+            9.342,
+            287.941
+        ],
+        [
+            9.342,
+            277.96
+        ],
+        [
+            9.834,
+            287.014
+        ],
+        [
+            9.834,
+            300.082
+        ],
+        [
+            9.834,
+            296.341
+        ],
+        [
+            9.834,
+            295.699
+        ],
+        [
+            9.834,
+            296.058
+        ],
+        [
+            9.834,
+            295.878
+        ],
+        [
+            9.834,
+            295.303
+        ],
+        [
+            9.834,
+            294.602
+        ],
+        [
+            9.834,
+            307.838
+        ],
+        [
+            10.579,
+            317.041
+        ],
+        [
+            10.579,
+            307.708
+        ],
+        [
+            10.579,
+            294.431
+        ],
+        [
+            10.579,
+            300.163
+        ],
+        [
+            10.579,
+            299.005
+        ],
+        [
+            10.579,
+            297.837
+        ],
+        [
+            10.579,
+            297.953
+        ],
+        [
+            10.579,
+            298.572
+        ],
+        [
+            10.579,
+            299.163
+        ],
+        [
+            10.579,
+            299.834
+        ],
+        [
+            10.337,
+            306.383
+        ],
+        [
+            10.337,
+            321.196
+        ],
+        [
+            10.337,
+            335.715
+        ],
+        [
+            10.337,
+            331.79
+        ],
+        [
+            10.337,
+            332.771
+        ],
+        [
+            10.337,
+            332.876
+        ],
+        [
+            10.337,
+            332.582
+        ],
+        [
+            10.337,
+            332.938
+        ],
+        [
+            10.337,
+            333.186
+        ],
+        [
+            10.337,
+            333.051
+        ],
+        [
+            10.268,
+            332.304
+        ],
+        [
+            10.268,
+            332.362
+        ],
+        [
+            10.268,
+            333.158
+        ],
+        [
+            10.268,
+            332.986
+        ],
+        [
+            10.268,
+            333.081
+        ],
+        [
+            10.268,
+            333.656
+        ],
+        [
+            10.268,
+            333.668
+        ],
+        [
+            10.268,
+            333.299
+        ],
+        [
+            10.268,
+            332.909
+        ],
+        [
+            10.268,
+            333.171
+        ],
+        [
+            10.629,
+            333.247
+        ],
+        [
+            10.629,
+            333.703
+        ],
+        [
+            10.629,
+            333.543
+        ],
+        [
+            10.629,
+            333.427
+        ],
+        [
+            10.629,
+            333.766
+        ],
+        [
+            10.629,
+            333.745
+        ],
+        [
+            10.629,
+            333.77
+        ],
+        [
+            10.629,
+            333.13
+        ],
+        [
+            10.629,
+            333.608
+        ],
+        [
+            10.629,
+            333.032
+        ],
+        [
+            10.567,
+            332.877
+        ],
+        [
+            10.567,
+            332.833
+        ],
+        [
+            10.567,
+            333.241
+        ],
+        [
+            10.567,
+            333.662
+        ],
+        [
+            10.567,
+            333.662
+        ],
+        [
+            10.567,
+            333.616
+        ],
+        [
+            10.567,
+            333.459
+        ],
+        [
+            10.567,
+            333.736
+        ],
+        [
+            10.567,
+            333.234
+        ],
+        [
+            10.567,
+            333.321
+        ],
+        [
+            10.249,
+            333.3
+        ],
+        [
+            10.249,
+            333.795
+        ],
+        [
+            10.249,
+            333.179
+        ],
+        [
+            10.249,
+            333.198
+        ],
+        [
+            10.249,
+            333.414
+        ],
+        [
+            10.249,
+            333.446
+        ],
+        [
+            10.249,
+            333.715
+        ],
+        [
+            10.249,
+            334.043
+        ],
+        [
+            10.249,
+            333.985
+        ],
+        [
+            10.249,
+            333.854
+        ],
+        [
+            10.622,
+            334.029
+        ],
+        [
+            10.622,
+            333.504
+        ],
+        [
+            10.622,
+            319.77
+        ],
+        [
+            10.622,
+            305.085
+        ],
+        [
+            10.622,
+            298.254
+        ],
+        [
+            10.622,
+            299.479
+        ],
+        [
+            10.622,
+            300.324
+        ],
+        [
+            10.622,
+            301.264
+        ],
+        [
+            10.622,
+            302.639
+        ],
+        [
+            10.622,
+            300.421
+        ],
+        [
+            9.799,
+            299.22
+        ],
+        [
+            9.799,
+            299.609
+        ],
+        [
+            9.799,
+            313.783
+        ],
+        [
+            9.799,
+            326.969
+        ],
+        [
+            9.799,
+            333.801
+        ],
+        [
+            9.799,
+            332.906
+        ],
+        [
+            9.799,
+            332.19
+        ],
+        [
+            9.799,
+            331.284
+        ],
+        [
+            9.799,
+            330.08
+        ],
+        [
+            9.799,
+            333.017
+        ],
+        [
+            10.223,
+            333.929
+        ],
+        [
+            10.223,
+            333.449
+        ],
+        [
+            10.223,
+            333.103
+        ],
+        [
+            10.223,
+            334.304
+        ],
+        [
+            10.223,
+            333.969
+        ],
+        [
+            10.223,
+            334.195
+        ],
+        [
+            10.223,
+            334.019
+        ],
+        [
+            10.223,
+            333.72
+        ],
+        [
+            10.223,
+            334.116
+        ],
+        [
+            10.223,
+            333.929
+        ],
+        [
+            10.618,
+            333.896
+        ],
+        [
+            10.618,
+            333.402
+        ],
+        [
+            10.618,
+            333.86
+        ],
+        [
+            10.618,
+            320.698
+        ],
+        [
+            10.618,
+            306.607
+        ],
+        [
+            10.618,
+            300.047
+        ],
+        [
+            10.618,
+            299.663
+        ],
+        [
+            10.618,
+            298.217
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            39
+        ],
+        [
+            0,
+            39
+        ],
+        [
+            0,
+            97
+        ],
+        [
+            0,
+            97
+        ],
+        [
+            0,
+            61
+        ],
+        [
+            0,
+            61
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            3
+        ],
+        [
+            0,
+            3
+        ],
+        [
+            0,
+            64
+        ],
+        [
+            0,
+            64
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            58
+        ],
+        [
+            0,
+            58
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            89
+        ],
+        [
+            0,
+            89
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            76
+        ],
+        [
+            0,
+            77
+        ],
+        [
+            0,
+            77
+        ],
+        [
+            0,
+            39
+        ],
+        [
+            0,
+            39
+        ],
+        [
+            0,
+            17
+        ],
+        [
+            0,
+            17
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            100
+        ],
+        [
+            0,
+            78
+        ],
+        [
+            0,
+            78
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            72
+        ],
+        [
+            0,
+            72
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            4
+        ],
+        [
+            0,
+            4
+        ],
+        [
+            0,
+            60
+        ],
+        [
+            0,
+            60
+        ]
+    ]
+}

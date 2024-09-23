@@ -1,0 +1,895 @@
+{
+    "time_taken": 8.673907279968262,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['com.google.javascript.jscomp.CodePrinterTest.testManyAdds()']` failed.\nThe test looks like:\n\n```java\n1382 :   public void testManyAdds() {\n1383 :     int numAdds = 10000;\n1384 :     List<String> numbers = Lists.newArrayList(\"0\", \"1\");\n1385 :     Node current = new Node(Token.ADD, Node.newNumber(0), Node.newNumber(1));\n1386 :     for (int i = 2; i < numAdds; i++) {\n1387 :       current = new Node(Token.ADD, current);\n1388 : \n1389 :       // 1000 is printed as 1E3, and screws up our test.\n1390 :       int num = i % 1000;\n1391 :       numbers.add(String.valueOf(num));\n1392 :       current.addChildToBack(Node.newNumber(num));\n1393 :     }\n1394 : \n1395 :     String expected = Joiner.on(\"+\").join(numbers);\n1396 :     String actual = printNode(current).replace(\"\\n\", \"\");\n1397 :     assertEquals(expected, actual);\n1398 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.StackOverflowError\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:102)\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:122)\n... (same pattern repeats 509 more times) ...\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:122)\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.jscomp\": [\"CodeGenerator\", \"CodePrinter\", \"NodeUtil\", \"CodeConsumer\"], \"com.google.javascript.rhino\": [\"Node\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"com.google.javascript.jscomp.CodeGenerator\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context)\", \".getContextForNoInOperator(com.google.javascript.jscomp.CodeGenerator.Context)\", \".addExpr(com.google.javascript.rhino.Node, int, com.google.javascript.jscomp.CodeGenerator.Context)\", \".CodeGenerator(com.google.javascript.jscomp.CodeConsumer, java.nio.charset.Charset)\", \".add(com.google.javascript.rhino.Node)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"com.google.javascript.jscomp.CodeGenerator.add\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "{\"error_message\": \"There are multiple matches to that query. Do you mean any of the following: {'get_code_snippet(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context))', 'get_code_snippet(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node))'}?\"}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"com.google.javascript.jscomp.CodeGenerator\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context)\", \".getContextForNoInOperator(com.google.javascript.jscomp.CodeGenerator.Context)\", \".addExpr(com.google.javascript.rhino.Node, int, com.google.javascript.jscomp.CodeGenerator.Context)\", \".CodeGenerator(com.google.javascript.jscomp.CodeConsumer, java.nio.charset.Charset)\", \".add(com.google.javascript.rhino.Node)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_comments",
+                "arguments": "{\"signature\": \"com.google.javascript.jscomp.CodeGenerator.add\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_comments",
+            "content": "{\"error_message\": \"There are multiple matches to that query. Do you mean any of the following: {'get_comments(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node))', 'get_comments(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context))'}?\"}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"com.google.javascript.jscomp\": [\"CodeGenerator\", \"CodePrinter\", \"NodeUtil\", \"CodeConsumer\"], \"com.google.javascript.rhino\": [\"Node\"]}"
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m9"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m5",
+                    "m6",
+                    "m9",
+                    "m10"
+                ],
+                "response_message": "m3"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['com.google.javascript.jscomp.CodePrinterTest.testManyAdds()']` failed.\nThe test looks like:\n\n```java\n1382 :   public void testManyAdds() {\n1383 :     int numAdds = 10000;\n1384 :     List<String> numbers = Lists.newArrayList(\"0\", \"1\");\n1385 :     Node current = new Node(Token.ADD, Node.newNumber(0), Node.newNumber(1));\n1386 :     for (int i = 2; i < numAdds; i++) {\n1387 :       current = new Node(Token.ADD, current);\n1388 : \n1389 :       // 1000 is printed as 1E3, and screws up our test.\n1390 :       int num = i % 1000;\n1391 :       numbers.add(String.valueOf(num));\n1392 :       current.addChildToBack(Node.newNumber(num));\n1393 :     }\n1394 : \n1395 :     String expected = Joiner.on(\"+\").join(numbers);\n1396 :     String actual = printNode(current).replace(\"\\n\", \"\");\n1397 :     assertEquals(expected, actual);\n1398 :   }\n```\n\nIt failed with the following error message and call stack:\n\n```\njava.lang.StackOverflowError\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:102)\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:122)\n... (same pattern repeats 509 more times) ...\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n\tat com.google.javascript.jscomp.CodeGenerator.add(CodeGenerator.java:122)\n\tat com.google.javascript.jscomp.CodeGenerator.addExpr(CodeGenerator.java:891)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"com.google.javascript.jscomp\": [\"CodeGenerator\", \"CodePrinter\", \"NodeUtil\", \"CodeConsumer\"], \"com.google.javascript.rhino\": [\"Node\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"com.google.javascript.jscomp.CodeGenerator\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context)\", \".getContextForNoInOperator(com.google.javascript.jscomp.CodeGenerator.Context)\", \".addExpr(com.google.javascript.rhino.Node, int, com.google.javascript.jscomp.CodeGenerator.Context)\", \".CodeGenerator(com.google.javascript.jscomp.CodeConsumer, java.nio.charset.Charset)\", \".add(com.google.javascript.rhino.Node)\"]"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"com.google.javascript.jscomp.CodeGenerator.add\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "{\"error_message\": \"There are multiple matches to that query. Do you mean any of the following: {'get_code_snippet(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context))', 'get_code_snippet(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node))'}?\"}"
+            },
+            "m9": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_comments",
+                    "arguments": "{\"signature\": \"com.google.javascript.jscomp.CodeGenerator.add\"}"
+                }
+            },
+            "m10": {
+                "role": "function",
+                "name": "get_comments",
+                "content": "{\"error_message\": \"There are multiple matches to that query. Do you mean any of the following: {'get_comments(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node))', 'get_comments(com.google.javascript.jscomp.CodeGenerator.add(com.google.javascript.rhino.Node, com.google.javascript.jscomp.CodeGenerator.Context))'}?\"}"
+            }
+        }
+    },
+    "buggy_methods": "Traceback (most recent call last):\n  File \"/root/autofl/autofl.py\", line 261, in <module>\n    grade = ad.run(args.max_budget)\n  File \"/root/autofl/autofl.py\", line 221, in run\n    done = self.step(function_call_mode)\n  File \"/root/autofl/autofl.py\", line 131, in step\n    response = self.get_LLM_response(\n  File \"/root/autofl/lib/llm_utils.py\", line 75, in get_LLM_response\n    raise save_err\n  File \"/root/autofl/lib/llm_utils.py\", line 68, in get_LLM_response\n    return self.parse_response(json.loads(response.text)['response'])\n  File \"/root/autofl/lib/llm_utils.py\", line 30, in parse_response\n    arg_value = true_response.split('(')[1].removesuffix(')')\nIndexError: list index out of range\n",
+    "total_energy": [
+        0.0,
+        2280.2089
+    ],
+    "power_draw": [
+        [
+            10.259,
+            228.594
+        ],
+        [
+            10.259,
+            213.492
+        ],
+        [
+            10.259,
+            198.508
+        ],
+        [
+            10.259,
+            204.185
+        ],
+        [
+            10.259,
+            219.347
+        ],
+        [
+            9.207,
+            234.014
+        ],
+        [
+            9.207,
+            245.891
+        ],
+        [
+            9.207,
+            260.304
+        ],
+        [
+            9.207,
+            274.592
+        ],
+        [
+            9.207,
+            281.97
+        ],
+        [
+            9.207,
+            281.818
+        ],
+        [
+            9.207,
+            282.987
+        ],
+        [
+            9.207,
+            298.785
+        ],
+        [
+            9.207,
+            294.301
+        ],
+        [
+            9.207,
+            293.68
+        ],
+        [
+            10.023,
+            293.3
+        ],
+        [
+            10.023,
+            296.048
+        ],
+        [
+            10.023,
+            295.638
+        ],
+        [
+            10.023,
+            301.505
+        ],
+        [
+            10.023,
+            300.93
+        ],
+        [
+            10.023,
+            299.467
+        ],
+        [
+            10.023,
+            294.135
+        ],
+        [
+            10.023,
+            293.062
+        ],
+        [
+            10.023,
+            292.551
+        ],
+        [
+            10.023,
+            292.249
+        ],
+        [
+            10.389,
+            286.74
+        ],
+        [
+            10.389,
+            271.606
+        ],
+        [
+            10.389,
+            257.183
+        ],
+        [
+            10.389,
+            259.408
+        ],
+        [
+            10.389,
+            274.496
+        ],
+        [
+            10.389,
+            290.308
+        ],
+        [
+            10.389,
+            294.879
+        ],
+        [
+            10.389,
+            281.813
+        ],
+        [
+            10.389,
+            267.758
+        ],
+        [
+            10.389,
+            263.354
+        ],
+        [
+            9.917,
+            267.549
+        ],
+        [
+            9.917,
+            282.298
+        ],
+        [
+            9.917,
+            297.049
+        ],
+        [
+            9.917,
+            295.745
+        ],
+        [
+            9.917,
+            296.159
+        ],
+        [
+            9.917,
+            295.289
+        ],
+        [
+            9.917,
+            294.892
+        ],
+        [
+            9.917,
+            309.632
+        ],
+        [
+            9.917,
+            324.551
+        ],
+        [
+            9.917,
+            329.558
+        ],
+        [
+            10.639,
+            330.849
+        ],
+        [
+            10.639,
+            329.205
+        ],
+        [
+            10.639,
+            314.308
+        ],
+        [
+            10.639,
+            299.756
+        ],
+        [
+            10.639,
+            295.49
+        ],
+        [
+            10.639,
+            295.316
+        ],
+        [
+            10.639,
+            295.247
+        ],
+        [
+            10.639,
+            295.084
+        ],
+        [
+            10.639,
+            294.61
+        ],
+        [
+            10.639,
+            294.434
+        ],
+        [
+            9.938,
+            294.479
+        ],
+        [
+            9.938,
+            296.466
+        ],
+        [
+            9.938,
+            311.557
+        ],
+        [
+            9.938,
+            326.537
+        ],
+        [
+            9.938,
+            330.318
+        ],
+        [
+            9.938,
+            330.225
+        ],
+        [
+            9.938,
+            329.949
+        ],
+        [
+            9.938,
+            329.768
+        ],
+        [
+            9.938,
+            330.462
+        ],
+        [
+            9.938,
+            330.515
+        ],
+        [
+            10.596,
+            330.67
+        ],
+        [
+            10.596,
+            330.437
+        ],
+        [
+            10.596,
+            330.489
+        ],
+        [
+            10.596,
+            329.764
+        ],
+        [
+            10.596,
+            329.58
+        ],
+        [
+            10.596,
+            330.207
+        ],
+        [
+            10.596,
+            330.517
+        ],
+        [
+            10.596,
+            330.575
+        ],
+        [
+            10.596,
+            330.193
+        ],
+        [
+            10.377,
+            330.652
+        ],
+        [
+            10.377,
+            330.369
+        ],
+        [
+            10.377,
+            330.606
+        ],
+        [
+            10.377,
+            330.338
+        ],
+        [
+            10.377,
+            331.094
+        ],
+        [
+            10.377,
+            331.485
+        ],
+        [
+            10.377,
+            330.861
+        ],
+        [
+            10.377,
+            331.27
+        ],
+        [
+            10.377,
+            326.582
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            99
+        ],
+        [
+            0,
+            99
+        ],
+        [
+            0,
+            88
+        ],
+        [
+            0,
+            88
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            17
+        ],
+        [
+            0,
+            17
+        ],
+        [
+            0,
+            46
+        ],
+        [
+            0,
+            46
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            33
+        ],
+        [
+            0,
+            33
+        ],
+        [
+            0,
+            26
+        ],
+        [
+            0,
+            26
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            60
+        ],
+        [
+            0,
+            60
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            72
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            61
+        ],
+        [
+            0,
+            61
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            30
+        ],
+        [
+            0,
+            30
+        ],
+        [
+            0,
+            27
+        ],
+        [
+            0,
+            27
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            74
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            75
+        ],
+        [
+            0,
+            73
+        ],
+        [
+            0,
+            73
+        ]
+    ]
+}

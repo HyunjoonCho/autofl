@@ -1,0 +1,1129 @@
+{
+    "time_taken": 11.257057666778564,
+    "messages": [
+        {
+            "role": "system",
+            "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+        },
+        {
+            "role": "user",
+            "content": "The test `['org.apache.commons.lang.StringUtilsEqualsIndexOfTest.testContainsIgnoreCase_LocaleIndependence()']` failed.\nThe test looks like:\n\n```java\n316 :     public void testContainsIgnoreCase_LocaleIndependence() {\n317 :         Locale orig = Locale.getDefault();\n318 : \n319 :         Locale[] locales = { Locale.ENGLISH, new Locale(\"tr\"), Locale.getDefault() };\n320 : \n321 :         String[][] tdata = { \n322 :             { \"i\", \"I\" },\n323 :             { \"I\", \"i\" },\n324 :             { \"\\u03C2\", \"\\u03C3\" },\n325 :             { \"\\u03A3\", \"\\u03C2\" },\n326 :             { \"\\u03A3\", \"\\u03C3\" },\n327 :         };\n328 : \n329 :         String[][] fdata = { \n330 :             { \"\\u00DF\", \"SS\" },\n331 :         };\n332 : \n333 :         try {\n334 :             for (int i = 0; i < locales.length; i++) {\n335 :                 Locale.setDefault(locales[i]);\n336 :                 for (int j = 0; j < tdata.length; j++) {\n337 :                     assertTrue(Locale.getDefault() + \": \" + j + \" \" + tdata[j][0] + \" \" + tdata[j][1], StringUtils\n338 :                             .containsIgnoreCase(tdata[j][0], tdata[j][1]));\n339 :                 }\n340 :                 for (int j = 0; j < fdata.length; j++) {\n341 :                     assertFalse(Locale.getDefault() + \": \" + j + \" \" + fdata[j][0] + \" \" + fdata[j][1], StringUtils // error occurred here\n342 :                             .containsIgnoreCase(fdata[j][0], fdata[j][1]));\n343 :                 }\n344 :             }\n345 :         } finally {\n346 :             Locale.setDefault(orig);\n347 :         }\n348 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: en: 0 \u00df SS\n\tat org.apache.commons.lang.StringUtilsEqualsIndexOfTest.testContainsIgnoreCase_LocaleIndependence(StringUtilsEqualsIndexOfTest.java:341)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang\": [\"StringUtils\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_methods_for_class",
+                "arguments": "{\"class_name\": \"org.apache.commons.lang.StringUtils\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_methods_for_class",
+            "content": "[\".containsIgnoreCase(java.lang.String, java.lang.String)\", \".contains(java.lang.String, java.lang.String)\"]"
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.StringUtils.containsIgnoreCase\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String). It looks like:\\n```java\\n1044 :     public static boolean containsIgnoreCase(String str, String searchStr) {\\n1045 :         if (str == null || searchStr == null) {\\n1046 :             return false;\\n1047 :         }\\n1048 :         return contains(str.toUpperCase(), searchStr.toUpperCase());\\n1049 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.StringUtils.contains\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.StringUtils.contains(java.lang.String, java.lang.String). It looks like:\\n```java\\n1014 :     public static boolean contains(String str, String searchStr) {\\n1015 :         if (str == null || searchStr == null) {\\n1016 :             return false;\\n1017 :         }\\n1018 :         return str.indexOf(searchStr) >= 0;\\n1019 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_code_snippet",
+                "arguments": "{\"signature\": \"org.apache.commons.lang.StringUtils.containsIgnoreCase\"}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_code_snippet",
+            "content": "\"You probably mean org.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String). It looks like:\\n```java\\n1044 :     public static boolean containsIgnoreCase(String str, String searchStr) {\\n1045 :         if (str == null || searchStr == null) {\\n1046 :             return false;\\n1047 :         }\\n1048 :         return contains(str.toUpperCase(), searchStr.toUpperCase());\\n1049 :     }\\n```\""
+        },
+        {
+            "role": "assistant",
+            "content": null,
+            "function_call": {
+                "name": "get_failing_tests_covered_classes",
+                "arguments": "{}"
+            }
+        },
+        {
+            "role": "function",
+            "name": "get_failing_tests_covered_classes",
+            "content": "{\"org.apache.commons.lang\": [\"StringUtils\"]}"
+        },
+        {
+            "role": "assistant",
+            "content": "Conclusion: The test `testContainsIgnoreCase_LocaleIndependence` checks whether the Apache Commons Lang library's `containsIgnoreCase` method correctly searches for strings in a locale-independent manner. However, the test failure suggests that this is not the case. Following the execution path, we find that the `containsIgnoreCase` method calls the underlying `contains` method and converts both input strings to uppercase before searching, which effectively disables locale independence.\n\nPlease provide the methods to be fixed."
+        },
+        {
+            "role": "user",
+            "content": "Based on the available information, provide the signatures of the most likely culprit methods for the bug. Your answer will be processed automatically, so make sure to only answer with the accurate signatures of all likely culprits (in `ClassName.MethodName(ArgType1, ArgType2, ...)` format), without commentary (one per line). "
+        },
+        {
+            "role": "assistant",
+            "content": "Here are the method signatures that need to be fixed:\n\norg.apache.commons.lang.StringUtils.contains(java.lang.String, java.lang.String)\norg.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String)\n\nThese methods should be reviewed and possibly modified or overridden to achieve the desired locale independence."
+        }
+    ],
+    "interaction_records": {
+        "step_histories": [
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m5"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m9"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10"
+                ],
+                "response_message": "m7"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10",
+                    "m7",
+                    "m8"
+                ],
+                "response_message": "m3"
+            },
+            {
+                "prompt_messages": [
+                    "m1",
+                    "m2",
+                    "m3",
+                    "m4",
+                    "m5",
+                    "m6",
+                    "m7",
+                    "m8",
+                    "m9",
+                    "m10",
+                    "m7",
+                    "m8",
+                    "m3",
+                    "m4"
+                ],
+                "response_message": "m11"
+            }
+        ],
+        "mid_to_message": {
+            "m1": {
+                "role": "system",
+                "content": "You are a debugging assistant. You will be presented with a failing test, and tools (functions) to access the source code of the system under test (SUT). Your task is to provide a step-by-step explanation of how the bug occurred, based on the failing test and the information you retrieved using tests about the SUT. You will be given 9 chances to interact with functions to gather relevant information. An example answer would look like follows.\n\n```\nThe test `testGenerateURLFragment` checks whether HTML entities such as `&quot;` are correctly escaped to their corresponding character by the `StandardToolTipTagFragmentGenerator.generateToolTipFragment` method. However, the test failure indicates that this is not the case. Following the execution path, we find that `StandardToolTipTagFragmentGenerator.generateToolTipFragment` is not escaping any HTML code; instead, it is using its input `toolTipText` as is. Consequently, un-escaped strings are being returned, which leads to the error demonstrated by the test.\n```\n\nYou have the following functions available to debug the case:\n\n1. get_failing_tests_covered_classes() - This function retrieves a set of classes covered by failing tests and groups them by their package names. It returns a dictionary where keys are package names, and values are lists of simple class names belonging to that package. Call example: get_failing_tests_covered_classes()\n2. get_failing_tests_covered_methods_for_class(class_name) - This function takes a class_name as input and returns a list of method names covered by failing tests for the specified class in the program under test. It returns a list of truncated method signatures (add to the class name to get the full signature). Call example: get_failing_tests_covered_methods_for_class(\"my.favorite.Class\")\n3. get_code_snippet(method_signature) - This function takes a signature as input and returns the corresponding code snippet for the method or field. It returns the code snippet for the specified method or field, or the error message if the signature is not found. Call example: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n4. get_comments(method_signature) - This function takes a signature as input and returns JavaDoc documentation (if available) for the method or field. It returns the comment/documentation for the specified method or field, or the error message if the signature is not found. Call example: get_comments(\"my.favorite.Class.Method(Args)\")\n\nTo make a function call, respond like the following:\n\n```\nFunction call: get_code_snippet(\"my.favorite.Class.Method(Args)\")\n```\n\nIf you are done and ready to generate a response, respond like the following:\n\n```\nConclusion: The test `testGenerateURLFragment` checks...\n```\n\nYou will keep these instructions in mind while proceeding.\n\nAfter providing this diagnosis, you will be prompted to suggest which methods would be the best locations to be fixed. The answers should be in the form of `ClassName.MethodName(ArgType1, ArgType2, ...)` without commentary (one per line), as your answer will be automatically processed before finally being presented to the user."
+            },
+            "m2": {
+                "role": "user",
+                "content": "The test `['org.apache.commons.lang.StringUtilsEqualsIndexOfTest.testContainsIgnoreCase_LocaleIndependence()']` failed.\nThe test looks like:\n\n```java\n316 :     public void testContainsIgnoreCase_LocaleIndependence() {\n317 :         Locale orig = Locale.getDefault();\n318 : \n319 :         Locale[] locales = { Locale.ENGLISH, new Locale(\"tr\"), Locale.getDefault() };\n320 : \n321 :         String[][] tdata = { \n322 :             { \"i\", \"I\" },\n323 :             { \"I\", \"i\" },\n324 :             { \"\\u03C2\", \"\\u03C3\" },\n325 :             { \"\\u03A3\", \"\\u03C2\" },\n326 :             { \"\\u03A3\", \"\\u03C3\" },\n327 :         };\n328 : \n329 :         String[][] fdata = { \n330 :             { \"\\u00DF\", \"SS\" },\n331 :         };\n332 : \n333 :         try {\n334 :             for (int i = 0; i < locales.length; i++) {\n335 :                 Locale.setDefault(locales[i]);\n336 :                 for (int j = 0; j < tdata.length; j++) {\n337 :                     assertTrue(Locale.getDefault() + \": \" + j + \" \" + tdata[j][0] + \" \" + tdata[j][1], StringUtils\n338 :                             .containsIgnoreCase(tdata[j][0], tdata[j][1]));\n339 :                 }\n340 :                 for (int j = 0; j < fdata.length; j++) {\n341 :                     assertFalse(Locale.getDefault() + \": \" + j + \" \" + fdata[j][0] + \" \" + fdata[j][1], StringUtils // error occurred here\n342 :                             .containsIgnoreCase(fdata[j][0], fdata[j][1]));\n343 :                 }\n344 :             }\n345 :         } finally {\n346 :             Locale.setDefault(orig);\n347 :         }\n348 :     }\n```\n\nIt failed with the following error message and call stack:\n\n```\njunit.framework.AssertionFailedError: en: 0 \u00df SS\n\tat org.apache.commons.lang.StringUtilsEqualsIndexOfTest.testContainsIgnoreCase_LocaleIndependence(StringUtilsEqualsIndexOfTest.java:341)\n```\n\nStart by calling the `get_failing_tests_covered_classes` function."
+            },
+            "m3": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_classes",
+                    "arguments": "{}"
+                }
+            },
+            "m4": {
+                "role": "function",
+                "name": "get_failing_tests_covered_classes",
+                "content": "{\"org.apache.commons.lang\": [\"StringUtils\"]}"
+            },
+            "m5": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_failing_tests_covered_methods_for_class",
+                    "arguments": "{\"class_name\": \"org.apache.commons.lang.StringUtils\"}"
+                }
+            },
+            "m6": {
+                "role": "function",
+                "name": "get_failing_tests_covered_methods_for_class",
+                "content": "[\".containsIgnoreCase(java.lang.String, java.lang.String)\", \".contains(java.lang.String, java.lang.String)\"]"
+            },
+            "m7": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang.StringUtils.containsIgnoreCase\"}"
+                }
+            },
+            "m8": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String). It looks like:\\n```java\\n1044 :     public static boolean containsIgnoreCase(String str, String searchStr) {\\n1045 :         if (str == null || searchStr == null) {\\n1046 :             return false;\\n1047 :         }\\n1048 :         return contains(str.toUpperCase(), searchStr.toUpperCase());\\n1049 :     }\\n```\""
+            },
+            "m9": {
+                "role": "assistant",
+                "content": null,
+                "function_call": {
+                    "name": "get_code_snippet",
+                    "arguments": "{\"signature\": \"org.apache.commons.lang.StringUtils.contains\"}"
+                }
+            },
+            "m10": {
+                "role": "function",
+                "name": "get_code_snippet",
+                "content": "\"You probably mean org.apache.commons.lang.StringUtils.contains(java.lang.String, java.lang.String). It looks like:\\n```java\\n1014 :     public static boolean contains(String str, String searchStr) {\\n1015 :         if (str == null || searchStr == null) {\\n1016 :             return false;\\n1017 :         }\\n1018 :         return str.indexOf(searchStr) >= 0;\\n1019 :     }\\n```\""
+            },
+            "m11": {
+                "role": "assistant",
+                "content": "Conclusion: The test `testContainsIgnoreCase_LocaleIndependence` checks whether the Apache Commons Lang library's `containsIgnoreCase` method correctly searches for strings in a locale-independent manner. However, the test failure suggests that this is not the case. Following the execution path, we find that the `containsIgnoreCase` method calls the underlying `contains` method and converts both input strings to uppercase before searching, which effectively disables locale independence.\n\nPlease provide the methods to be fixed."
+            }
+        }
+    },
+    "buggy_methods": {
+        "org.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String)": {
+            "is_found": true,
+            "matching_answer": [
+                "org.apache.commons.lang.StringUtils.containsIgnoreCase(java.lang.String, java.lang.String)"
+            ]
+        }
+    },
+    "total_energy": [
+        3041.5990000000015,
+        0.0
+    ],
+    "power_draw": [
+        [
+            231.744,
+            11.072
+        ],
+        [
+            236.618,
+            11.072
+        ],
+        [
+            235.416,
+            11.072
+        ],
+        [
+            236.396,
+            11.072
+        ],
+        [
+            238.344,
+            11.072
+        ],
+        [
+            240.926,
+            11.072
+        ],
+        [
+            240.913,
+            11.072
+        ],
+        [
+            242.762,
+            11.072
+        ],
+        [
+            260.364,
+            10.623
+        ],
+        [
+            277.377,
+            10.623
+        ],
+        [
+            294.348,
+            10.623
+        ],
+        [
+            276.745,
+            10.623
+        ],
+        [
+            263.637,
+            10.623
+        ],
+        [
+            259.966,
+            10.623
+        ],
+        [
+            258.21,
+            10.623
+        ],
+        [
+            267.983,
+            10.623
+        ],
+        [
+            284.582,
+            10.623
+        ],
+        [
+            297.961,
+            10.623
+        ],
+        [
+            280.55,
+            11.297
+        ],
+        [
+            263.7,
+            11.297
+        ],
+        [
+            260.78,
+            11.297
+        ],
+        [
+            274.716,
+            11.297
+        ],
+        [
+            291.635,
+            11.297
+        ],
+        [
+            297.308,
+            11.297
+        ],
+        [
+            285.111,
+            11.297
+        ],
+        [
+            268.574,
+            11.297
+        ],
+        [
+            263.908,
+            11.297
+        ],
+        [
+            263.561,
+            11.297
+        ],
+        [
+            280.257,
+            11.32
+        ],
+        [
+            297.117,
+            11.32
+        ],
+        [
+            299.925,
+            11.32
+        ],
+        [
+            301.973,
+            11.32
+        ],
+        [
+            302.103,
+            11.32
+        ],
+        [
+            302.45,
+            11.32
+        ],
+        [
+            317.314,
+            11.32
+        ],
+        [
+            334.127,
+            11.32
+        ],
+        [
+            338.743,
+            11.32
+        ],
+        [
+            340.108,
+            11.32
+        ],
+        [
+            339.016,
+            11.231
+        ],
+        [
+            336.422,
+            11.231
+        ],
+        [
+            332.444,
+            11.231
+        ],
+        [
+            326.37,
+            11.231
+        ],
+        [
+            321.301,
+            11.231
+        ],
+        [
+            316.608,
+            11.231
+        ],
+        [
+            311.644,
+            11.231
+        ],
+        [
+            307.21,
+            11.231
+        ],
+        [
+            303.504,
+            11.231
+        ],
+        [
+            300.147,
+            11.231
+        ],
+        [
+            296.928,
+            11.301
+        ],
+        [
+            295.058,
+            11.301
+        ],
+        [
+            295.111,
+            11.301
+        ],
+        [
+            296.885,
+            11.301
+        ],
+        [
+            298.693,
+            11.301
+        ],
+        [
+            299.849,
+            11.301
+        ],
+        [
+            301.751,
+            11.301
+        ],
+        [
+            302.959,
+            11.301
+        ],
+        [
+            304.365,
+            11.301
+        ],
+        [
+            304.843,
+            11.301
+        ],
+        [
+            305.586,
+            11.293
+        ],
+        [
+            306.641,
+            11.293
+        ],
+        [
+            307.896,
+            11.293
+        ],
+        [
+            308.563,
+            11.293
+        ],
+        [
+            308.463,
+            11.293
+        ],
+        [
+            308.42,
+            11.293
+        ],
+        [
+            308.016,
+            11.293
+        ],
+        [
+            308.359,
+            11.293
+        ],
+        [
+            307.491,
+            11.293
+        ],
+        [
+            307.448,
+            11.293
+        ],
+        [
+            308.291,
+            11.025
+        ],
+        [
+            307.846,
+            11.025
+        ],
+        [
+            307.332,
+            11.025
+        ],
+        [
+            307.714,
+            11.025
+        ],
+        [
+            307.43,
+            11.025
+        ],
+        [
+            307.686,
+            11.025
+        ],
+        [
+            308.677,
+            11.025
+        ],
+        [
+            308.246,
+            11.025
+        ],
+        [
+            308.341,
+            11.025
+        ],
+        [
+            308.483,
+            11.363
+        ],
+        [
+            308.279,
+            11.363
+        ],
+        [
+            308.632,
+            11.363
+        ],
+        [
+            302.394,
+            11.363
+        ],
+        [
+            288.121,
+            11.363
+        ],
+        [
+            274.669,
+            11.363
+        ],
+        [
+            276.022,
+            11.363
+        ],
+        [
+            275.647,
+            11.363
+        ],
+        [
+            276.47,
+            11.363
+        ],
+        [
+            276.827,
+            11.363
+        ],
+        [
+            275.71,
+            10.867
+        ],
+        [
+            274.148,
+            10.867
+        ],
+        [
+            273.825,
+            10.867
+        ],
+        [
+            279.697,
+            10.867
+        ],
+        [
+            293.644,
+            10.867
+        ],
+        [
+            306.698,
+            10.867
+        ],
+        [
+            304.593,
+            10.867
+        ],
+        [
+            304.227,
+            10.867
+        ],
+        [
+            303.369,
+            10.867
+        ],
+        [
+            302.613,
+            10.867
+        ],
+        [
+            303.479,
+            11.0
+        ],
+        [
+            299.254,
+            11.0
+        ],
+        [
+            286.045,
+            11.0
+        ],
+        [
+            272.759,
+            11.0
+        ],
+        [
+            273.971,
+            11.0
+        ],
+        [
+            273.355,
+            11.0
+        ],
+        [
+            273.784,
+            11.0
+        ],
+        [
+            274.821,
+            11.0
+        ],
+        [
+            275.797,
+            11.0
+        ],
+        [
+            277.075,
+            11.0
+        ]
+    ],
+    "gpu_activity": [
+        [
+            0,
+            0
+        ],
+        [
+            49,
+            0
+        ],
+        [
+            49,
+            0
+        ],
+        [
+            81,
+            0
+        ],
+        [
+            81,
+            0
+        ],
+        [
+            52,
+            0
+        ],
+        [
+            52,
+            0
+        ],
+        [
+            5,
+            0
+        ],
+        [
+            5,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            39,
+            0
+        ],
+        [
+            39,
+            0
+        ],
+        [
+            23,
+            0
+        ],
+        [
+            23,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            67,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            0,
+            0
+        ],
+        [
+            68,
+            0
+        ],
+        [
+            68,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            3,
+            0
+        ],
+        [
+            3,
+            0
+        ],
+        [
+            62,
+            0
+        ],
+        [
+            62,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            77,
+            0
+        ],
+        [
+            77,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            75,
+            0
+        ],
+        [
+            19,
+            0
+        ],
+        [
+            19,
+            0
+        ],
+        [
+            41,
+            0
+        ],
+        [
+            41,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            100,
+            0
+        ],
+        [
+            97,
+            0
+        ],
+        [
+            97,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            72,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            76,
+            0
+        ],
+        [
+            22,
+            0
+        ],
+        [
+            22,
+            0
+        ],
+        [
+            40,
+            0
+        ],
+        [
+            40,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            74,
+            0
+        ],
+        [
+            73,
+            0
+        ],
+        [
+            73,
+            0
+        ]
+    ]
+}
