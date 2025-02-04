@@ -9,6 +9,7 @@ FUNCTION_INDICES = {'get_failing_tests_covered_classes': 0, 'get_failing_tests_c
         'get_code_snippet': 2, 'get_comments': 3}
 FUNCTION_COLORS = ['039dff', 'ABDEFF', 'd62728', 'EB9394', '000000']
 FUNCTION_LABELS = ['class_cov', 'method_cov', 'snippet', 'comments', 'undefined']
+MAX_STEPS=11
 
 def file2bug(json_file):
     if not json_file.endswith(".json"):
@@ -18,10 +19,49 @@ def file2bug(json_file):
     except:
         return None
 
+def count_function_calls_by_step(calls_by_step, messages):
+    index = 0
+    for m in messages:
+        if m['role'] == 'assistant' and 'function_call' in m and index < MAX_STEPS:
+            if not m['function_call']['name'] in calls_by_step:
+                calls_by_step[m['function_call']['name']] = [0] * MAX_STEPS
+            calls_by_step[m['function_call']['name']][index] += 1
+            index += 1 
+
+def count_failing_and_total_calls(failing_calls, total_calls, messages):
+    for i in range(len(messages) - 1):
+        m = messages[i]
+        next_m = messages[i + 1]
+        if m['role'] == 'assistant' and 'function_call' in m:
+            if next_m['role'] != 'function':
+                continue 
+            if not m['function_call']['name'] in total_calls:
+                total_calls[m['function_call']['name']] = 0
+                failing_calls[m['function_call']['name']] = 0
+            if 'error_message' in next_m['content']:
+                failing_calls[m['function_call']['name']] += 1
+            total_calls[m['function_call']['name']] += 1 
+
+def function_call_to_str(function_call):
+    return function_call['name'] + function_call['arguments']
+
+def is_found(log):
+    return isinstance(log['buggy_methods'], dict) and any([method['is_found'] for method in log['buggy_methods'].values()])
+
+def count_repeated_calls(repeated_calls, messages, is_found):
+    previous_calls = {}
+    for m in messages:
+        if m['role'] == 'assistant' and 'function_call' in m:
+            if not function_call_to_str(m['function_call']) in previous_calls:
+                previous_calls[function_call_to_str(m['function_call'])] = 0
+            previous_calls[function_call_to_str(m['function_call'])] += 1
+    repeated_calls[is_found].append(sum([count - 1 for count in previous_calls.values()]) / sum(previous_calls.values()))
+
 def analyze_function_calls(result_dirs, project=None):
     calls_by_step = {}
     total_calls = {}
     failing_calls = {}
+    repeated_calls = {True: [], False: []}
 
     for result_dir in result_dirs:
         file_iterator = sorted([f for f in os.listdir(result_dir) if f.endswith('.json')], key=lambda fname: int(fname.split('_')[1].split('.')[0]))
@@ -38,32 +78,18 @@ def analyze_function_calls(result_dirs, project=None):
                 autofl_data = json.load(f)
 
             valid_messages = autofl_data["messages"]
-            
-            index = 0
-            for m in valid_messages:
-                if m['role'] == 'assistant' and 'function_call' in m and index < 11:
-                    if not m['function_call']['name'] in calls_by_step:
-                        calls_by_step[m['function_call']['name']] = [0] * 11
-                    calls_by_step[m['function_call']['name']][index] += 1
-                    index += 1
+            count_function_calls_by_step(calls_by_step, valid_messages)
+            count_failing_and_total_calls(failing_calls, total_calls, valid_messages)
+            count_repeated_calls(repeated_calls, valid_messages, is_found(autofl_data))
 
-            for i in range(len(valid_messages) - 1):
-                m = valid_messages[i]
-                next_m = valid_messages[i + 1]
-                if m['role'] == 'assistant' and 'function_call' in m:
-                    if next_m['role'] != 'function':
-                        continue 
-                    if not m['function_call']['name'] in total_calls:
-                        total_calls[m['function_call']['name']] = 0
-                        failing_calls[m['function_call']['name']] = 0
-                    if 'error_message' in next_m['content']:
-                        failing_calls[m['function_call']['name']] += 1
-                    total_calls[m['function_call']['name']] += 1
-    
-    return calls_by_step, total_calls, failing_calls
+    repeated_calls['num_found'] = len(repeated_calls[True])
+    repeated_calls['mean_of_found'] = sum(repeated_calls[True]) / len(repeated_calls[True])
+    repeated_calls['num_unfound'] = len(repeated_calls[False])
+    repeated_calls['mean_of_unfound'] = sum(repeated_calls[False]) / len(repeated_calls[False])
+ 
+    return calls_by_step, total_calls, failing_calls, repeated_calls
 
 def plot_call_distribution(data, total_runs, path):
-    MAX_STEPS=11
     plt.style.use('style/style-formal.mplstyle')
 
     labels = list(data.keys())
@@ -130,10 +156,10 @@ if __name__ == '__main__':
     parser.add_argument('--project', '-p', type=str, default=None)
     args = parser.parse_args()
 
-    calls_by_step, total, failing = analyze_function_calls(args.result_dirs, args.project)
+    calls_by_step, total, failing, repeated = analyze_function_calls(args.result_dirs, args.project)
     total_runs = calls_by_step[list(calls_by_step.keys())[0]][0]
     plot_call_distribution(calls_by_step, total_runs, f'{args.output}_distribution.png')
     plot_failing_calls(total, failing, total_runs, f'{args.output}_failing_rate.png')
 
     with open(f'{args.output}.json', "w") as f:
-        json.dump({'total': total, 'failing': failing, 'steps': calls_by_step}, f, indent=4)
+        json.dump({'total': total, 'failing': failing, 'steps': calls_by_step, 'repetition': repeated}, f, indent=4)

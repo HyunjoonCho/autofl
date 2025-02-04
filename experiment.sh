@@ -10,6 +10,8 @@ python compute_weighted_score.py results/d4j_autofl_template2_*/llama3 \
                                  results/d4j_autofl_template2_*/mixtral \
                                  -a -l java -s pso -cv -o weighted_fl_results/d4j_ensemble4_R5
 
+sh runner.sh d4j_chart_energy_ 1 defects4j gemma2:9b-instruct-fp16 prompts/system_msg_expbug_with_funcs.txt Chart
+
 sh runner.sh d4j_chart_single_prompt_ 5 defects4j llama3 prompts/system_msg_expbug_with_funcs.txt Chart
 sh runner.sh d4j_chart_three_funcs_ 5 defects4j llama3 prompts/system_msg_expbug_with_three_funcs.txt Chart
 sh runner.sh d4j_chart_single_prompt_ 1 defects4j codellama:13B prompts/system_msg_expbug_with_funcs.txt Chart
@@ -164,6 +166,7 @@ python analyze_function_calls.py results/d4j_autofl_template2_*/phi3:medium-128k
 python analyze_function_calls.py results/d4j_autofl_template2_*/phi3:medium -o function_call_patterns/d4j_phi3_template2
 
 python analyze_function_calls.py results/d4j_autofl_template2_*/llama3 -o function_call_patterns/d4j_llama3_template2
+python analyze_function_calls.py results/d4j_autofl_template2_*/llama3:70b -o function_call_patterns/d4j_llama3_70B_template2
 python analyze_function_calls.py results/d4j_autofl_template2_*/llama3.1 -o function_call_patterns/d4j_llama3.1_template2
 python analyze_function_calls.py results/d4j_autofl_template2_*/llama3:8b-instruct-fp16 -o function_call_patterns/d4j_llama3_fp16_template2
 python analyze_function_calls.py results/d4j_autofl_template2_*/gemma2 -o function_call_patterns/d4j_gemma2_template2

@@ -132,7 +132,8 @@ def apply_weight_and_evaluate(autofl_scores, model_list, weights, verbose=False)
     return autofl_scores_aug[autofl_scores_aug['desired_score'] == 1].groupby('bug')['rank'].min()
 
 def get_accuracies(rank_by_bug):
-   return [len(rank_by_bug[rank_by_bug <= 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
+    print(rank_by_bug)
+    return [len(rank_by_bug[rank_by_bug <= 1]), len(rank_by_bug[rank_by_bug <= 2]), len(rank_by_bug[rank_by_bug <= 3])]
 
 def get_wef(rank_by_bug):
     return sum(rank_by_bug),
@@ -246,10 +247,12 @@ if __name__ == '__main__':
         log = cross_validation(score_df, model_list, optimizer)
     else:
         evaluator = create_evaluation_function(score_df, model_list)
-        best, log = optimizer(evaluator, len(model_list))
+        best, optimization_log = optimizer(evaluator, len(model_list))
         accs = get_accuracies(apply_weight_and_evaluate(score_df, model_list, best, verbose=True))
+        log = dict()
         log['best'] = best
         log['accs'] = accs
+        log['log'] = optimization_log
     
     output_path = f'{args.output}_{args.strategy}_CV.json' if args.cross_validation else f'{args.output}_{args.strategy}.json' 
     with open(output_path, 'w') as f:
